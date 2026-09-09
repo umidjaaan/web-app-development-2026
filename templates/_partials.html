@@ -1,0 +1,35 @@
+{{define "head"}}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111110">
+<link rel="icon" href="/resources/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/resources/styles/app.css">
+{{end}}
+
+{{define "nav"}}
+<nav class="tabbar">
+    <a class="tabbar__item{{if eq .Tab "feed"}} tabbar__item--active{{end}}" href="/feed">
+        <svg class="tabbar__icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="3" width="16" height="18" rx="3"/>
+            <path d="M10 9.5v5l4.5-2.5z" class="ico-cut"/>
+        </svg>
+        <span>Лента</span>
+    </a>
+    <a class="tabbar__item{{if eq .Tab "add"}} tabbar__item--active{{end}}" href="/add">
+        <svg class="tabbar__icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3.5" y="3.5" width="17" height="17" rx="4"/>
+            <path d="M12 8v8M8 12h8" class="ico-cut"/>
+        </svg>
+        <span>Добавление</span>
+    </a>
+    <a class="tabbar__item{{if eq .Tab "catalog"}} tabbar__item--active{{end}}" href="/catalog">
+        <svg class="tabbar__icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2"/>
+            <rect x="13" y="3.5" width="7.5" height="7.5" rx="2"/>
+            <rect x="3.5" y="13" width="7.5" height="7.5" rx="2"/>
+            <rect x="13" y="13" width="7.5" height="7.5" rx="2"/>
+        </svg>
+        <span>Плитка</span>
+    </a>
+</nav>
+{{end}}

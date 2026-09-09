@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    {{template "head" .}}
+    <title>{{.Category.Title}} — Амфора</title>
+    <link rel="stylesheet" href="/resources/styles/feed.css">
+</head>
+<body class="page page--feed">
+
+<main class="feed">
+    <video class="feed__video"
+           src="{{.Category.VideoURL}}"
+           poster="{{.Category.ImageURL}}"
+           autoplay muted loop playsinline preload="auto"></video>
+    <div class="feed__shade"></div>
+
+    <header class="feed__top">
+        <span class="brand">Амфора</span>
+        <span class="feed__counter">{{.Position}} / {{.Total}}</span>
+    </header>
+
+    <section class="feed__info">
+        <span class="pill">{{.Category.Region}}</span>
+
+        <h1 class="feed__title">{{.Category.Title}}</h1>
+        <p class="feed__center">{{.Category.ProductionCenter}}</p>
+        <p class="feed__period">{{.Category.Period}} · {{.Category.Shape}}</p>
+
+        <p class="feed__diagnostics">{{.Category.Diagnostics}}</p>
+
+        <dl class="stats">
+            <div class="stats__item">
+                <dt>Находок</dt>
+                <dd>{{.Category.FindsCount}}</dd>
+            </div>
+            <div class="stats__item">
+                <dt>Доля импорта</dt>
+                <dd>{{printf "%.1f%%" .Share}}</dd>
+            </div>
+            <div class="stats__item">
+                <dt>Лайков</dt>
+                <dd>&#9829; {{.Category.Likes}}</dd>
+            </div>
+        </dl>
+
+        <a class="btn btn--next" href="/feed/{{.NextID}}">Следующий</a>
+    </section>
+</main>
+
+{{template "nav" .}}
+
+</body>
+</html>

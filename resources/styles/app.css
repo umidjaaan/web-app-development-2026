@@ -1,0 +1,263 @@
+/* ==========================================================================
+   Амфора — общие стили приложения.
+   Стилистика заимствована у arzamas.academy:
+   графитовый фон #1A1A1A, фирменный бежевый #E8E8E1, жёлтый акцент #FECF00,
+   карточки со скруглением 20px, теги-пилюли 999px, переход 0.2s.
+   ========================================================================== */
+
+:root {
+    --ink: #1a1a1a;      /* Arzamas: основной графит */
+    --paper: #e8e8e1;    /* Arzamas: фирменный бежевый */
+    --sand: #b8b8a8;     /* Arzamas: приглушённый песочный */
+    --muted: #4c4c4c;    /* Arzamas: вторичный текст */
+    --yellow: #fecf00;   /* Arzamas: жёлтый акцент */
+
+    --shell: #111110;    /* фон экрана приложения */
+    --surround: #050505;  /* поле вокруг экрана на десктопе */
+
+    --radius-card: 20px;
+    --radius-field: 10px;
+    --radius-pill: 999px;
+
+    --tabbar-h: 74px;
+    --screen: 430px;
+
+    --fast: 0.2s ease;   /* Arzamas: transition 0.2s */
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--surround);
+    color: var(--paper);
+    font-family: "Formular", "Inter", "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.35;
+    -webkit-font-smoothing: antialiased;
+}
+
+img,
+video {
+    display: block;
+    max-width: 100%;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* --- каркас экрана (портретный режим, мобильная ширина) ------------------ */
+
+.page {
+    position: relative;
+    width: 100%;
+    max-width: var(--screen);
+    min-height: 100vh;
+    margin: 0 auto;
+    padding-bottom: var(--tabbar-h);
+    background: var(--shell);
+    overflow-x: hidden;
+}
+
+/* --- шапка --------------------------------------------------------------- */
+
+.brand {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.topbar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 16px 12px;
+    border-bottom: 1px solid rgba(232, 232, 225, 0.12);
+}
+
+.topbar__site {
+    flex: 0 1 auto;
+    overflow: hidden;
+    color: var(--sand);
+    font-size: 12px;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* --- тег-пилюля (скопирован с карточек Arzamas) -------------------------- */
+
+.pill {
+    display: inline-block;
+    padding: 5px 16px;
+    border: 1px solid rgba(232, 232, 225, 0.55);
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--paper);
+    background: rgba(17, 17, 16, 0.35);
+}
+
+.pill--card {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 11px;
+    padding: 3px 10px;
+    backdrop-filter: blur(4px);
+}
+
+.pill--draft {
+    border-color: var(--yellow);
+    color: var(--ink);
+    background: var(--yellow);
+}
+
+/* --- кнопки -------------------------------------------------------------- */
+
+.btn {
+    display: inline-block;
+    padding: 14px 26px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: background var(--fast), color var(--fast), transform var(--fast);
+}
+
+.btn--primary {
+    width: 100%;
+    color: var(--ink);
+    background: var(--yellow);
+}
+
+.btn--primary:hover {
+    background: var(--paper);
+}
+
+.btn--next {
+    color: var(--ink);
+    background: var(--paper);
+}
+
+.btn--next::after {
+    content: " →";
+}
+
+.btn--next:hover {
+    background: var(--yellow);
+}
+
+.btn--filter {
+    padding: 12px 20px;
+    color: var(--ink);
+    background: var(--paper);
+    border-radius: var(--radius-field);
+}
+
+.btn--filter:hover {
+    background: var(--yellow);
+}
+
+/* --- нижняя навигационная панель ----------------------------------------- */
+
+.tabbar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    z-index: 20;
+    display: flex;
+    width: 100%;
+    max-width: var(--screen);
+    height: var(--tabbar-h);
+    transform: translateX(-50%);
+    background: rgba(17, 17, 16, 0.94);
+    border-top: 1px solid rgba(232, 232, 225, 0.14);
+    backdrop-filter: blur(10px);
+}
+
+.tabbar__item {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    color: var(--sand);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    transition: color var(--fast);
+}
+
+.tabbar__item:hover {
+    color: var(--paper);
+}
+
+.tabbar__item--active {
+    color: var(--yellow);
+}
+
+.tabbar__icon {
+    width: 23px;
+    height: 23px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+}
+
+.tabbar__icon .ico-cut {
+    fill: currentColor;
+    stroke: currentColor;
+    stroke-width: 1.4;
+}
+
+/* --- страница ошибки ----------------------------------------------------- */
+
+.errorbox {
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.errorbox__code {
+    margin: 0;
+    color: var(--yellow);
+    font-size: 56px;
+    font-weight: 700;
+}
+
+.errorbox__title {
+    margin: 8px 0 28px;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/* --- десктоп: показываем «телефон» на тёмном поле ------------------------ */
+
+@media (min-width: 620px) {
+    .page {
+        min-height: calc(100vh - 40px);
+        margin: 20px auto;
+        border-radius: 28px;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    }
+
+    .tabbar {
+        bottom: 20px;
+        border-radius: 0 0 28px 28px;
+    }
+}

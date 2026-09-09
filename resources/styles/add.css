@@ -1,0 +1,157 @@
+/* ==========================================================================
+   Вкладка «Добавление»: форма с разделёнными полями для изображения,
+   видео, текста и параметров сводки.
+   ========================================================================== */
+
+.add {
+    padding: 16px 14px 28px;
+}
+
+.add__title {
+    margin: 6px 0 10px;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.add__status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 18px;
+    font-size: 12px;
+    color: var(--sand);
+}
+
+/* --- блоки формы --------------------------------------------------------- */
+
+.form__block {
+    margin: 0 0 14px;
+    padding: 14px;
+    border: 1px solid rgba(232, 232, 225, 0.16);
+    border-radius: var(--radius-card);
+    background: rgba(232, 232, 225, 0.04);
+}
+
+.form__legend {
+    padding: 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--yellow);
+}
+
+.form__preview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.form__thumb {
+    width: 76px;
+    height: 95px;
+    object-fit: cover;
+    border-radius: var(--radius-field);
+    background: var(--sand);
+}
+
+.form__thumb--video {
+    background: #000;
+}
+
+.form__hint {
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--sand);
+    word-break: break-word;
+}
+
+.form__file {
+    width: 100%;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--sand);
+}
+
+.form__file::file-selector-button {
+    margin-right: 10px;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--fast);
+}
+
+.form__file::file-selector-button:hover {
+    background: var(--yellow);
+}
+
+/* --- текстовые поля ------------------------------------------------------ */
+
+.form__label {
+    display: block;
+    margin: 12px 0 6px;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    color: var(--sand);
+}
+
+.form__input,
+.form__textarea {
+    display: block;
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid rgba(232, 232, 225, 0.22);
+    border-radius: var(--radius-field);
+    background: rgba(232, 232, 225, 0.06);
+    color: var(--paper);
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.35;
+    transition: border-color var(--fast), background var(--fast);
+}
+
+.form__textarea {
+    resize: vertical;
+}
+
+.form__input:focus,
+.form__textarea:focus {
+    outline: none;
+    border-color: var(--yellow);
+    background: rgba(232, 232, 225, 0.1);
+}
+
+.form__input::placeholder,
+.form__textarea::placeholder {
+    color: rgba(184, 184, 168, 0.5);
+}
+
+.form__select {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--sand) 50%),
+                      linear-gradient(135deg, var(--sand) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+    padding-right: 34px;
+}
+
+.form__select option {
+    color: var(--ink);
+    background: var(--paper);
+}
+
+.form__note {
+    margin: 12px 0 0;
+    font-size: 11px;
+    line-height: 1.45;
+    color: rgba(184, 184, 168, 0.75);
+}

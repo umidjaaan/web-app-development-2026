@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    {{template "head" .}}
+    <title>Добавление категории — Амфора</title>
+    <link rel="stylesheet" href="/resources/styles/add.css">
+</head>
+<body class="page page--add">
+
+<header class="topbar">
+    <span class="brand">Амфора</span>
+    <span class="topbar__site">{{.Site}}</span>
+</header>
+
+<main class="add">
+    <h1 class="add__title">Новая категория импорта</h1>
+
+    {{if .HasDraft}}
+        <p class="add__status">
+            <span class="pill pill--draft">{{.Draft.Status.Label}}</span>
+            черновик №{{.Draft.ID}} загружен с сервера
+        </p>
+    {{else}}
+        <p class="add__status">Черновиков нет — форма пустая</p>
+    {{end}}
+
+    <form class="form" action="/add" method="get">
+
+        <fieldset class="form__block">
+            <legend class="form__legend">Изображение</legend>
+            <div class="form__preview">
+                <img class="form__thumb" src="{{.Draft.ImageURL}}" alt="Изображение черновика">
+                <span class="form__hint">{{.Draft.Slug}}.jpg — объект в Minio</span>
+            </div>
+            <input class="form__file" type="file" name="image" accept="image/*">
+        </fieldset>
+
+        <fieldset class="form__block">
+            <legend class="form__legend">Видео</legend>
+            <div class="form__preview">
+                <video class="form__thumb form__thumb--video"
+                       src="{{.Draft.VideoURL}}" poster="{{.Draft.ImageURL}}"
+                       muted loop playsinline preload="metadata"></video>
+                <span class="form__hint">{{.Draft.Slug}}.mp4 — объект в Minio</span>
+            </div>
+            <input class="form__file" type="file" name="video" accept="video/*">
+        </fieldset>
+
+        <fieldset class="form__block">
+            <legend class="form__legend">Описание</legend>
+
+            <label class="form__label" for="title">Название категории</label>
+            <input class="form__input" type="text" id="title" name="title"
+                   value="{{.Draft.Title}}" placeholder="Например: Книдские амфоры">
+
+            <label class="form__label" for="center">Центр производства</label>
+            <input class="form__input" type="text" id="center" name="center"
+                   value="{{.Draft.ProductionCenter}}" placeholder="Город, область">
+
+            <label class="form__label" for="diagnostics">Признаки-маркёры</label>
+            <textarea class="form__textarea" id="diagnostics" name="diagnostics" rows="4"
+                      placeholder="По каким признакам категория опознаётся во фрагменте">{{.Draft.Diagnostics}}</textarea>
+
+            <label class="form__label" for="description">Справка</label>
+            <textarea class="form__textarea" id="description" name="description" rows="4"
+                      placeholder="Значение категории для реконструкции связей">{{.Draft.Description}}</textarea>
+        </fieldset>
+
+        <fieldset class="form__block">
+            <legend class="form__legend">Параметры сводки</legend>
+
+            <label class="form__label" for="region">Регион-поставщик</label>
+            <select class="form__input form__select" id="region" name="region">
+                {{range .Regions}}
+                    <option value="{{.}}"{{if eq . $.Draft.Region}} selected{{end}}>{{.}}</option>
+                {{end}}
+            </select>
+
+            <label class="form__label" for="shape">Морфологический тип</label>
+            <input class="form__input" type="text" id="shape" name="shape"
+                   value="{{.Draft.Shape}}" placeholder="Амфора, килик, чаша">
+
+            <label class="form__label" for="period">Датировка</label>
+            <input class="form__input" type="text" id="period" name="period"
+                   value="{{.Draft.Period}}" placeholder="III–I вв. до н. э.">
+
+            <label class="form__label" for="finds">Число фрагментов на памятнике</label>
+            <input class="form__input" type="number" min="0" step="1" id="finds" name="finds"
+                   value="{{.Draft.FindsCount}}">
+        </fieldset>
+
+        <button class="btn btn--primary" type="submit">Сохранить категорию</button>
+        <p class="form__note">
+            На этом этапе форма ничего не сохраняет: запись в базу
+            появится в лабораторной работе №3.
+        </p>
+    </form>
+</main>
+
+{{template "nav" .}}
+
+</body>
+</html>

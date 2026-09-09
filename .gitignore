@@ -1,0 +1,13 @@
+# сборка
+/main
+/lab1
+*.exe
+bin/
+
+# среда
+.env
+.idea/
+.DS_Store
+Thumbs.db
+
+# настройки VS Code коммитим: .vscode/ намеренно не игнорируется

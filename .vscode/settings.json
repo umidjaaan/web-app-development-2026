@@ -1,0 +1,29 @@
+{
+    "files.eol": "\n",
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+
+    "go.useLanguageServer": true,
+    "go.formatTool": "gofmt",
+    "go.lintOnSave": "package",
+    "go.toolsManagement.autoUpdate": true,
+
+    "[go]": {
+        "editor.formatOnSave": true,
+        "editor.insertSpaces": false,
+        "editor.defaultFormatter": "golang.go"
+    },
+    "[html]": {
+        "editor.tabSize": 4
+    },
+    "[css]": {
+        "editor.tabSize": 4
+    },
+
+    "emmet.includeLanguages": {
+        "go-html-template": "html"
+    },
+    "files.associations": {
+        "templates/*.html": "html"
+    }
+}
