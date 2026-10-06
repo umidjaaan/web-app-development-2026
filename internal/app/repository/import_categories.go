@@ -99,17 +99,6 @@ func (r *Repository) DraftByUser(userID uint) (ds.ImportCategory, error) {
 	return item, nil
 }
 
-// Regions — список регионов-поставщиков для выпадающего списка формы.
-func (r *Repository) Regions() ([]string, error) {
-	var regions []string
-	err := r.db.Model(&ds.ImportCategory{}).
-		Where("status = ?", ds.StatusPublished).
-		Distinct().
-		Order("region ASC").
-		Pluck("region", &regions).Error
-	return regions, err
-}
-
 // LikesByUser — сколько категорий отметил пользователь (таблица м-м likes).
 func (r *Repository) LikesByUser(userID uint) (int, error) {
 	var count int64
@@ -134,13 +123,10 @@ func (r *Repository) UserByID(id uint) (ds.User, error) {
 // ==========================================================================
 
 // CreateDraft — кнопка «Далее»: создаёт черновик (INSERT через ORM).
-// В черновике пока только фото, видео и название; остальное заполняется
-// на следующем шаге, перед публикацией.
+// В черновике только название, фото и видео; даты и описание
+// заполняются на следующем шаге, перед публикацией.
 func (r *Repository) CreateDraft(item *ds.ImportCategory) error {
 	item.Status = ds.StatusDraft
-	if item.Slug == "" {
-		item.Slug = r.uniqueSlug(item.Title)
-	}
 	return r.db.Create(item).Error
 }
 
@@ -149,7 +135,6 @@ func (r *Repository) CreateDraft(item *ds.ImportCategory) error {
 // Опубликовать можно только свой черновик.
 func (r *Repository) PublishDraft(id uint, userID uint, fields map[string]any) error {
 	fields["status"] = ds.StatusPublished
-	fields["updated_at"] = time.Now()
 
 	result := r.db.Model(&ds.ImportCategory{}).
 		Where("id = ? AND status = ? AND creator_id = ?", id, ds.StatusDraft, userID).
@@ -179,7 +164,7 @@ func (r *Repository) DeleteImportCategory(id uint) error {
 
 	res, err := sqlDB.Exec(`
 		UPDATE import_categories
-		   SET status = 'deleted', updated_at = NOW()
+		   SET status = 'deleted'
 		 WHERE id = $1 AND status <> 'deleted'`, id)
 	if err != nil {
 		return err
@@ -271,57 +256,4 @@ func (r *Repository) fillLikes(items []ds.ImportCategory) {
 
 func (r *Repository) mediaURL(prefix, slug, ext string) string {
 	return fmt.Sprintf("%s/%s/%s.%s", r.mediaBase, prefix, slug, ext)
-}
-
-// uniqueSlug собирает slug из названия и добивается его уникальности.
-func (r *Repository) uniqueSlug(title string) string {
-	base := slugify(title)
-	if base == "" {
-		base = "import-category"
-	}
-
-	slug := base
-	for i := 2; i < 100; i++ {
-		var count int64
-		if err := r.db.Model(&ds.ImportCategory{}).
-			Where("slug = ?", slug).Count(&count).Error; err != nil {
-			break
-		}
-		if count == 0 {
-			return slug
-		}
-		slug = fmt.Sprintf("%s-%d", base, i)
-	}
-	return fmt.Sprintf("%s-%d", base, time.Now().Unix())
-}
-
-// translit — таблица для превращения названия в латинский slug.
-var translit = map[rune]string{
-	'а': "a", 'б': "b", 'в': "v", 'г': "g", 'д': "d", 'е': "e", 'ё': "e",
-	'ж': "zh", 'з': "z", 'и': "i", 'й': "y", 'к': "k", 'л': "l", 'м': "m",
-	'н': "n", 'о': "o", 'п': "p", 'р': "r", 'с': "s", 'т': "t", 'у': "u",
-	'ф': "f", 'х': "h", 'ц': "c", 'ч': "ch", 'ш': "sh", 'щ': "sch",
-	'ъ': "", 'ы': "y", 'ь': "", 'э': "e", 'ю': "yu", 'я': "ya",
-}
-
-func slugify(title string) string {
-	var b strings.Builder
-	for _, r := range strings.ToLower(strings.TrimSpace(title)) {
-		switch {
-		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
-			b.WriteRune(r)
-		case translit[r] != "":
-			b.WriteString(translit[r])
-		case r == ' ' || r == '-' || r == '_':
-			b.WriteByte('-')
-		}
-	}
-	return strings.Trim(collapseDashes(b.String()), "-")
-}
-
-func collapseDashes(s string) string {
-	for strings.Contains(s, "--") {
-		s = strings.ReplaceAll(s, "--", "-")
-	}
-	return s
 }

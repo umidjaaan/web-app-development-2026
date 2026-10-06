@@ -14,3 +14,6 @@ Thumbs.db
 
 # файлы, загруженные через форму
 media/uploads/
+
+# служебные файлы Python
+__pycache__/

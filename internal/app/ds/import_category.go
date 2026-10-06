@@ -52,86 +52,73 @@ func BCE(year int) time.Time {
 // DateLayout — формат даты HTML-поля <input type="date">.
 const DateLayout = "2006-01-02"
 
-// ImportCategory — услуга предметной области: характерная категория
-// импортных товаров с указанием центра производства.
+// ImportCategory — услуга: категория импортных находок.
 // Таблица в базе данных — import_categories.
+//
+// По кнопке «Далее» заполняются название (обязательно), фото и видео
+// (необязательно) — так создаётся черновик. Перед публикацией
+// заполняются два поля по теме — дата начала и дата конца — и описание.
+// Необязательные поля в таблице допускают NULL.
 type ImportCategory struct {
-	ID   uint   `gorm:"primaryKey"`
-	Slug string `gorm:"size:64;uniqueIndex;not null"`
+	ID uint `gorm:"primaryKey"`
 
-	Title            string `gorm:"size:128;not null"`      // «Аттическая чернофигурная керамика»
-	Shape            string `gorm:"size:64"`                // морфологический тип
-	ProductionCenter string `gorm:"size:128"`               // центр производства
-	Region           string `gorm:"size:64;not null;index"` // регион-поставщик
+	// «Далее»
+	Title    string `gorm:"size:128;not null"` // обязательно
+	ImageURL string `gorm:"size:256"`          // необязательно (NULL)
+	VideoURL string `gorm:"size:256"`          // необязательно (NULL)
 
-	// Два поля предметной области: начало и конец бытования типа.
+	// Два поля по теме. У черновика пустые (NULL).
 	// По DateStart работает фильтрация.
-	DateStart time.Time `gorm:"type:date;not null;index"`
-	DateEnd   time.Time `gorm:"type:date;not null"`
+	DateStart *time.Time `gorm:"type:date;index"`
+	DateEnd   *time.Time `gorm:"type:date"`
 
-	Diagnostics string `gorm:"type:text"` // признаки-маркёры
-	Description string `gorm:"type:text"` // развёрнутая справка
-
-	FindsCount int `gorm:"not null;default:0"` // число фрагментов в сводке
-
-	ImageURL string `gorm:"size:256"` // ключ изображения в Minio
-	VideoURL string `gorm:"size:256"` // ключ видео в Minio
+	Description string `gorm:"type:text"` // необязательно (NULL)
 
 	Status Status `gorm:"size:16;not null;default:draft;index"`
 
-	// Автор записи. Ограничение «не более одной неопубликованной категории
-	// на пользователя» реализовано частичным уникальным индексом
-	// (см. cmd/migrate/main.go).
-	CreatorID *uint `gorm:"index"`
+	// Создатель услуги — обязателен. Один черновик на пользователя
+	// обеспечивает частичный уникальный индекс (cmd/migrate/main.go).
+	CreatorID uint  `gorm:"not null;index"`
 	Creator   *User `gorm:"foreignKey:CreatorID"`
 
 	Likes []Like `gorm:"foreignKey:ImportCategoryID"`
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
-
-	// LikesTotal не хранится в таблице: репозиторий заполняет его
-	// отдельным запросом-подсчётом по таблице лайков.
+	// LikesTotal не хранится в таблице: считается запросом по likes.
 	LikesTotal int `gorm:"-"`
 }
 
-// TableName задаёт имя таблицы явно — оно должно совпадать с предметной
-// областью и с адресами приложения.
+// TableName — имя таблицы услуг.
 func (ImportCategory) TableName() string { return "import_categories" }
 
 // LikesCount — количество лайков карточки (используется в шаблонах).
 func (c ImportCategory) LikesCount() int { return c.LikesTotal }
 
-// FindsLabel — подпись количества находок для карточки.
-func (c ImportCategory) FindsLabel() string {
-	return fmt.Sprintf("%d фр.", c.FindsCount)
-}
-
-// DateStartLabel — дата начала бытования: «620 г. до н. э.».
-func (c ImportCategory) DateStartLabel() string { return bceLabel(c.DateStart) }
-
-// DateEndLabel — дата конца бытования: «480 г. до н. э.».
-func (c ImportCategory) DateEndLabel() string { return bceLabel(c.DateEnd) }
+// StartYear и EndYear — годы до н. э. (0, если дата не заполнена).
+func (c ImportCategory) StartYear() int { return year(c.DateStart) }
+func (c ImportCategory) EndYear() int   { return year(c.DateEnd) }
 
 // PeriodLabel — интервал бытования: «620–480 гг. до н. э.».
 func (c ImportCategory) PeriodLabel() string {
-	return fmt.Sprintf("%d–%d гг. до н. э.", c.DateStart.Year(), c.DateEnd.Year())
+	if c.DateStart == nil || c.DateEnd == nil {
+		return ""
+	}
+	return fmt.Sprintf("%d–%d гг. до н. э.", c.StartYear(), c.EndYear())
 }
 
-// PeriodShort — компактный интервал для карточки плитки.
-func (c ImportCategory) PeriodShort() string {
-	return fmt.Sprintf("%d–%d до н. э.", c.DateStart.Year(), c.DateEnd.Year())
+// DateStartInput и DateEndInput — значения для <input type="date">.
+func (c ImportCategory) DateStartInput() string { return dateInput(c.DateStart) }
+func (c ImportCategory) DateEndInput() string   { return dateInput(c.DateEnd) }
+
+func year(t *time.Time) int {
+	if t == nil {
+		return 0
+	}
+	return t.Year()
 }
 
-// DateStartInput — значение даты начала для <input type="date">.
-func (c ImportCategory) DateStartInput() string { return c.DateStart.Format(DateLayout) }
-
-// DateEndInput — значение даты конца для <input type="date">.
-func (c ImportCategory) DateEndInput() string { return c.DateEnd.Format(DateLayout) }
-
-// IsPublished — опубликована ли категория (для шаблонов).
-func (c ImportCategory) IsPublished() bool { return c.Status == StatusPublished }
-
-func bceLabel(t time.Time) string {
-	return fmt.Sprintf("%d г. до н. э.", t.Year())
+func dateInput(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format(DateLayout)
 }

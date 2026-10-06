@@ -138,9 +138,7 @@ func (h *Handler) ImportCategoryAdd(c *gin.Context) {
 	// Если у пользователя уже есть черновик — показываем шаг 2:
 	// фото и видео сверху, остальные поля и кнопка «Опубликовать».
 	if draft, err := h.Repository.DraftByUser(h.CurrentUserID); err == nil {
-		regions, _ := h.Repository.Regions()
 		data["Draft"] = draft
-		data["Regions"] = regions
 		h.Logger.Infof("GET /import_categories/add — черновик №%d", draft.ID)
 	} else {
 		h.Logger.Info("GET /import_categories/add — шаг 1")
@@ -160,13 +158,10 @@ func (h *Handler) ImportCategoryCreate(c *gin.Context) {
 		return
 	}
 
-	creator := h.CurrentUserID
+	// По кнопке «Далее» заполняются только название, фото и видео.
 	item := ds.ImportCategory{
 		Title:     title,
-		Region:    "—",
-		DateStart: time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC),
-		DateEnd:   time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC),
-		CreatorID: &creator,
+		CreatorID: h.CurrentUserID,
 	}
 
 	// Фото и видео, выбранные в проводнике. Если файл не выбран,
@@ -209,20 +204,11 @@ func (h *Handler) ImportCategoryPublish(c *gin.Context) {
 		h.renderError(c, http.StatusBadRequest, "Укажите дату начала и дату конца")
 		return
 	}
-	finds, err := strconv.Atoi(c.PostForm("finds"))
-	if err != nil || finds < 0 {
-		finds = 0
-	}
-
+	// Перед публикацией заполняются два поля по теме и описание.
 	fields := map[string]any{
-		"production_center": c.PostForm("center"),
-		"region":            c.PostForm("region"),
-		"shape":             c.PostForm("shape"),
-		"date_start":        dateStart,
-		"date_end":          dateEnd,
-		"finds_count":       finds,
-		"diagnostics":       c.PostForm("diagnostics"),
-		"description":       c.PostForm("description"),
+		"date_start":  dateStart,
+		"date_end":    dateEnd,
+		"description": c.PostForm("description"),
 	}
 
 	if err := h.Repository.PublishDraft(id, h.CurrentUserID, fields); err != nil {

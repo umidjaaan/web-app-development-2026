@@ -11,8 +11,8 @@
 
 <main class="add">
 {{if .Draft}}
-    <!-- ШАГ 2: черновик. Фото и видео сверху (уже выбраны на шаге 1),
-         ниже поля по теме и кнопка «Опубликовать» -->
+    <!-- ШАГ 2: черновик. Фото и видео сверху (выбраны на шаге 1),
+         ниже два поля по теме, описание и кнопка «Опубликовать» -->
     <h1 class="add__title">Публикация черновика</h1>
 
     <div class="media">
@@ -32,35 +32,15 @@
     <form class="form" action="/import_categories/{{.Draft.ID}}/publish" method="post">
         <p class="form__name">{{.Draft.Title}}</p>
 
-        <label class="form__label" for="center">Центр производства</label>
-        <input class="form__input" type="text" id="center" name="center" value="{{.Draft.ProductionCenter}}">
-
-        <label class="form__label" for="region">Регион-поставщик</label>
-        <select class="form__input form__select" id="region" name="region">
-            {{range .Regions}}
-                <option value="{{.}}"{{if eq . $.Draft.Region}} selected{{end}}>{{.}}</option>
-            {{end}}
-        </select>
-
-        <label class="form__label" for="shape">Морфологический тип</label>
-        <input class="form__input" type="text" id="shape" name="shape" value="{{.Draft.Shape}}">
-
         <label class="form__label" for="date_start">Дата начала</label>
         <input class="form__input" type="date" id="date_start" name="date_start" required
                min="0001-01-01" max="9999-12-31"
-               value="{{if gt .Draft.DateStart.Year 1}}{{.Draft.DateStartInput}}{{end}}">
+               value="{{.Draft.DateStartInput}}">
 
         <label class="form__label" for="date_end">Дата конца</label>
         <input class="form__input" type="date" id="date_end" name="date_end" required
                min="0001-01-01" max="9999-12-31"
-               value="{{if gt .Draft.DateEnd.Year 1}}{{.Draft.DateEndInput}}{{end}}">
-
-        <label class="form__label" for="finds">Число находок</label>
-        <input class="form__input" type="number" id="finds" name="finds" min="0" step="1"
-               value="{{.Draft.FindsCount}}">
-
-        <label class="form__label" for="diagnostics">Признаки-маркёры</label>
-        <textarea class="form__input form__textarea" id="diagnostics" name="diagnostics" rows="3">{{.Draft.Diagnostics}}</textarea>
+               value="{{.Draft.DateEndInput}}">
 
         <label class="form__label" for="description">Описание</label>
         <textarea class="form__input form__textarea" id="description" name="description" rows="4">{{.Draft.Description}}</textarea>

@@ -36,11 +36,10 @@
                     <div class="card__media">
                         <!-- фото по умолчанию, если ImageURL пустой -->
                         <img class="card__img" src="{{if .ImageURL}}{{.ImageURL}}{{else}}/resources/img/default.jpg{{end}}" alt="{{.Title}}" loading="lazy">
-                        <span class="pill pill--card">{{.Region}}</span>
                     </div>
                     <div class="card__body">
                         <h3 class="card__title">{{.Title}}</h3>
-                        <p class="card__period">{{.PeriodShort}}</p>
+                        <p class="card__period">{{.PeriodLabel}}</p>
                     </div>
                 </a>
                 <div class="card__foot">

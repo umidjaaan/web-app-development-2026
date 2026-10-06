@@ -25,8 +25,12 @@
     <aside class="rail">
         <dl class="rail__stats">
             <div class="rail__stat">
-                <dt>Находок</dt>
-                <dd>{{.ImportCategory.FindsCount}}</dd>
+                <dt>Начало</dt>
+                <dd>{{.ImportCategory.StartYear}}</dd>
+            </div>
+            <div class="rail__stat">
+                <dt>Конец</dt>
+                <dd>{{.ImportCategory.EndYear}}</dd>
             </div>
         </dl>
 
@@ -51,17 +55,10 @@
     <input class="more__toggle" type="checkbox" id="more" hidden>
 
     <section class="feed__info">
-        <span class="pill">{{.ImportCategory.Region}}</span>
-
         <h1 class="feed__title">{{.ImportCategory.Title}}</h1>
-        <p class="feed__center">{{.ImportCategory.ProductionCenter}}</p>
-        <p class="feed__period">{{.ImportCategory.PeriodLabel}} · {{.ImportCategory.Shape}}</p>
+        <p class="feed__period">{{.ImportCategory.PeriodLabel}}</p>
 
         <p class="feed__desc">{{.ImportCategory.Description}}</p>
-        <p class="feed__diag">
-            <span class="feed__diag-label">Признаки-маркёры.</span>
-            {{.ImportCategory.Diagnostics}}
-        </p>
         <label class="more__btn" for="more">
             <span class="more__open">Ещё</span>
             <span class="more__close">Свернуть</span>
