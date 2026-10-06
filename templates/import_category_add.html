@@ -3,7 +3,7 @@
 <head>
     {{template "head" .}}
     <title>Добавление категории — Амфора</title>
-    <link rel="stylesheet" href="/resources/styles/add.css">
+    <link rel="stylesheet" href="/resources/styles/import_category_add.css">
 </head>
 <body class="page page--add">
 
@@ -14,36 +14,23 @@
 
 <main class="add">
     <h1 class="add__title">Новая категория импорта</h1>
+    <p class="add__lead">
+        Форма заполняется вручную: изображение и видео уходят в Minio,
+        остальные поля — в коллекцию import_categories.
+    </p>
 
-    {{if .HasDraft}}
-        <p class="add__status">
-            <span class="pill pill--draft">{{.Draft.Status.Label}}</span>
-            черновик №{{.Draft.ID}} загружен с сервера
-        </p>
-    {{else}}
-        <p class="add__status">Черновиков нет — форма пустая</p>
-    {{end}}
-
-    <form class="form" action="/add" method="get">
+    <form class="form" action="/import_categories/add" method="get">
 
         <fieldset class="form__block">
             <legend class="form__legend">Изображение</legend>
-            <div class="form__preview">
-                <img class="form__thumb" src="{{.Draft.ImageURL}}" alt="Изображение черновика">
-                <span class="form__hint">{{.Draft.Slug}}.jpg — объект в Minio</span>
-            </div>
             <input class="form__file" type="file" name="image" accept="image/*">
+            <p class="form__hint">JPEG, вертикальный кадр 9:16 — объект бакета в Minio.</p>
         </fieldset>
 
         <fieldset class="form__block">
             <legend class="form__legend">Видео</legend>
-            <div class="form__preview">
-                <video class="form__thumb form__thumb--video"
-                       src="{{.Draft.VideoURL}}" poster="{{.Draft.ImageURL}}"
-                       muted loop playsinline preload="metadata"></video>
-                <span class="form__hint">{{.Draft.Slug}}.mp4 — объект в Minio</span>
-            </div>
             <input class="form__file" type="file" name="video" accept="video/*">
+            <p class="form__hint">MP4 без звука, зацикленное — объект бакета в Minio.</p>
         </fieldset>
 
         <fieldset class="form__block">
@@ -51,19 +38,19 @@
 
             <label class="form__label" for="title">Название категории</label>
             <input class="form__input" type="text" id="title" name="title"
-                   value="{{.Draft.Title}}" placeholder="Например: Книдские амфоры">
+                   placeholder="Например: Книдские амфоры">
 
             <label class="form__label" for="center">Центр производства</label>
             <input class="form__input" type="text" id="center" name="center"
-                   value="{{.Draft.ProductionCenter}}" placeholder="Город, область">
+                   placeholder="Город, область">
 
             <label class="form__label" for="diagnostics">Признаки-маркёры</label>
             <textarea class="form__textarea" id="diagnostics" name="diagnostics" rows="4"
-                      placeholder="По каким признакам категория опознаётся во фрагменте">{{.Draft.Diagnostics}}</textarea>
+                      placeholder="По каким признакам категория опознаётся во фрагменте"></textarea>
 
             <label class="form__label" for="description">Справка</label>
             <textarea class="form__textarea" id="description" name="description" rows="4"
-                      placeholder="Значение категории для реконструкции связей">{{.Draft.Description}}</textarea>
+                      placeholder="Значение категории для реконструкции связей"></textarea>
         </fieldset>
 
         <fieldset class="form__block">
@@ -72,21 +59,30 @@
             <label class="form__label" for="region">Регион-поставщик</label>
             <select class="form__input form__select" id="region" name="region">
                 {{range .Regions}}
-                    <option value="{{.}}"{{if eq . $.Draft.Region}} selected{{end}}>{{.}}</option>
+                    <option value="{{.}}">{{.}}</option>
                 {{end}}
             </select>
 
             <label class="form__label" for="shape">Морфологический тип</label>
             <input class="form__input" type="text" id="shape" name="shape"
-                   value="{{.Draft.Shape}}" placeholder="Амфора, килик, чаша">
+                   placeholder="Амфора, килик, чаша">
 
-            <label class="form__label" for="period">Датировка</label>
-            <input class="form__input" type="text" id="period" name="period"
-                   value="{{.Draft.Period}}" placeholder="III–I вв. до н. э.">
+            <label class="form__label" for="date_start">Дата начала бытования типа</label>
+            <input class="form__input" type="date" id="date_start" name="date_start"
+                   min="0001-01-01" max="9999-12-31">
+
+            <label class="form__label" for="date_end">Дата конца бытования типа</label>
+            <input class="form__input" type="date" id="date_end" name="date_end"
+                   min="0001-01-01" max="9999-12-31">
+
+            <p class="form__hint">
+                Год в календаре — это год до нашей эры: 0250-01-01 читается
+                как 250 г. до н. э.
+            </p>
 
             <label class="form__label" for="finds">Число фрагментов на памятнике</label>
             <input class="form__input" type="number" min="0" step="1" id="finds" name="finds"
-                   value="{{.Draft.FindsCount}}">
+                   placeholder="0">
         </fieldset>
 
         <button class="btn btn--primary" type="submit">Сохранить категорию</button>

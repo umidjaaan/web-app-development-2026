@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Вкладка «Плитка»: двухколончатый список карточек, серверный фильтр,
-   диаграмма удельного веса регионов.
+   Вкладка «Плитка»: двухколончатый список карточек, серверный фильтр
+   по дате начала (календарь с кнопкой), диаграмма удельного веса регионов.
    ========================================================================== */
 
 .catalog {
@@ -119,6 +119,8 @@
     color: var(--paper);
     font-family: inherit;
     font-size: 15px;
+    /* тёмная схема: встроенный календарь и его иконка светлые */
+    color-scheme: dark;
     transition: border-color var(--fast), background var(--fast);
 }
 
@@ -128,10 +130,31 @@
     background: rgba(232, 232, 225, 0.1);
 }
 
+.filter__hint {
+    margin: 8px 0 0;
+    font-size: 11px;
+    line-height: 1.4;
+    color: rgba(184, 184, 168, 0.75);
+}
+
 .catalog__found {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
     margin: 0 0 14px;
     font-size: 12px;
     color: var(--sand);
+}
+
+.catalog__reset {
+    color: var(--yellow);
+    font-weight: 600;
+    transition: opacity var(--fast);
+}
+
+.catalog__reset:hover {
+    opacity: 0.75;
 }
 
 /* --- сетка карточек: две колонки ----------------------------------------- */
@@ -221,8 +244,10 @@
     font-weight: 600;
 }
 
-.card__finds {
+.card__period {
     color: var(--muted);
+    font-size: 11px;
+    white-space: nowrap;
 }
 
 .catalog__note {

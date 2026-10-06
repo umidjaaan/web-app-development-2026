@@ -1,0 +1,247 @@
+/* ==========================================================================
+   Вкладка «Лента»: полноэкранное видео с автопроигрыванием, информация
+   поверх видео, параметры и обе иконки в правом вертикальном рельсе,
+   описание в две строки с раскрытием по «Ещё».
+   ========================================================================== */
+
+.page--feed {
+    padding-bottom: 0;
+}
+
+.feed {
+    position: relative;
+    height: 100vh;
+    overflow: hidden;
+    background: #000;
+}
+
+.feed__video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* затемнение, чтобы текст поверх видео читался */
+.feed__shade {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 26%),
+        linear-gradient(to top, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.55) 34%, rgba(0, 0, 0, 0) 62%);
+}
+
+.feed__top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 18px 0;
+    color: var(--paper);
+}
+
+.feed__counter {
+    font-size: 13px;
+    color: rgba(232, 232, 225, 0.75);
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- правый рельс: параметры и обе иконки -------------------------------- */
+
+.rail {
+    position: absolute;
+    right: 14px;
+    bottom: calc(var(--tabbar-h) + 18px);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 64px;
+    color: var(--paper);
+    text-align: center;
+}
+
+.rail__stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+}
+
+.rail__stat dt {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(232, 232, 225, 0.6);
+}
+
+.rail__stat dd {
+    margin: 2px 0 0;
+    font-size: 16px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.rail__action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    transition: color var(--fast), transform var(--fast);
+}
+
+.rail__action--next:hover {
+    color: var(--yellow);
+    transform: translateY(-2px);
+}
+
+.rail__icon {
+    width: 34px;
+    height: 34px;
+    fill: var(--paper);
+    stroke: none;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.55));
+}
+
+.rail__action--next .rail__icon {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+}
+
+.rail__action--next .ico-line {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.rail__count {
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- нижний блок с текстом ----------------------------------------------- */
+
+.feed__info {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--tabbar-h) + 18px);
+    padding: 26px 18px 0;
+    padding-right: 90px;   /* место под правый рельс */
+    color: var(--paper);
+    /* собственное затемнение: текст читается и когда описание раскрыто
+       и заходит на светлую часть кадра */
+    background: linear-gradient(to top,
+        rgba(0, 0, 0, 0.82) 0%,
+        rgba(0, 0, 0, 0.72) 55%,
+        rgba(0, 0, 0, 0) 100%);
+}
+
+.feed__title {
+    margin: 12px 0 6px;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+}
+
+.feed__center {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.feed__period {
+    margin: 2px 0 10px;
+    font-size: 13px;
+    color: rgba(232, 232, 225, 0.72);
+}
+
+/* описание: две строки, дальше — «Ещё» */
+.feed__desc {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.42;
+    color: rgba(232, 232, 225, 0.9);
+}
+
+.feed__diag {
+    display: none;
+    margin: 10px 0 0;
+    font-size: 13px;
+    line-height: 1.42;
+    color: rgba(232, 232, 225, 0.78);
+}
+
+.feed__diag-label {
+    color: var(--yellow);
+    font-weight: 600;
+}
+
+/* раскрытие без JavaScript: скрытый чекбокс управляет соседним блоком */
+.more__toggle:checked ~ .feed__info {
+    /* раскрытый текст заходит на светлую часть кадра, поэтому панель
+       затемняется сильнее */
+    background: linear-gradient(to top,
+        rgba(0, 0, 0, 0.9) 0%,
+        rgba(0, 0, 0, 0.84) 72%,
+        rgba(0, 0, 0, 0.5) 92%,
+        rgba(0, 0, 0, 0) 100%);
+}
+
+.more__toggle:checked ~ .feed__info .feed__desc {
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: visible;
+}
+
+.more__toggle:checked ~ .feed__info .feed__diag {
+    display: block;
+}
+
+.more__btn {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--yellow);
+    cursor: pointer;
+    transition: opacity var(--fast);
+}
+
+.more__btn:hover {
+    opacity: 0.75;
+}
+
+.more__close {
+    display: none;
+}
+
+.more__toggle:checked ~ .feed__info .more__btn .more__open {
+    display: none;
+}
+
+.more__toggle:checked ~ .feed__info .more__btn .more__close {
+    display: inline;
+}
+
+@media (min-width: 620px) {
+    .feed {
+        height: calc(100vh - 40px);
+        border-radius: 28px;
+    }
+}

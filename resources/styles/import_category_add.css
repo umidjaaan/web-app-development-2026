@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Вкладка «Добавление»: форма с разделёнными полями для изображения,
-   видео, текста и параметров сводки.
+   Вкладка «Добавление»: пустая форма с разделёнными полями для изображения,
+   видео, текста и параметров сводки (даты бытования — календарями).
    ========================================================================== */
 
 .add {
@@ -14,12 +14,10 @@
     line-height: 1.1;
 }
 
-.add__status {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.add__lead {
     margin: 0 0 18px;
-    font-size: 12px;
+    font-size: 13px;
+    line-height: 1.45;
     color: var(--sand);
 }
 
@@ -42,30 +40,11 @@
     color: var(--yellow);
 }
 
-.form__preview {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.form__thumb {
-    width: 76px;
-    height: 95px;
-    object-fit: cover;
-    border-radius: var(--radius-field);
-    background: var(--sand);
-}
-
-.form__thumb--video {
-    background: #000;
-}
-
 .form__hint {
+    margin: 10px 0 0;
     font-size: 11px;
     line-height: 1.4;
-    color: var(--sand);
-    word-break: break-word;
+    color: rgba(184, 184, 168, 0.75);
 }
 
 .form__file {
@@ -115,6 +94,8 @@
     font-family: inherit;
     font-size: 15px;
     line-height: 1.35;
+    /* тёмная схема: встроенный календарь полей с датами светлый */
+    color-scheme: dark;
     transition: border-color var(--fast), background var(--fast);
 }
 

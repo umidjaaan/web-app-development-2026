@@ -119,12 +119,6 @@ a {
     backdrop-filter: blur(4px);
 }
 
-.pill--draft {
-    border-color: var(--yellow);
-    color: var(--ink);
-    background: var(--yellow);
-}
-
 /* --- кнопки -------------------------------------------------------------- */
 
 .btn {
@@ -148,19 +142,6 @@ a {
 
 .btn--primary:hover {
     background: var(--paper);
-}
-
-.btn--next {
-    color: var(--ink);
-    background: var(--paper);
-}
-
-.btn--next::after {
-    content: " →";
-}
-
-.btn--next:hover {
-    background: var(--yellow);
 }
 
 .btn--filter {

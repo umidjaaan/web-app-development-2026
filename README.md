@@ -6,12 +6,15 @@
 импортных находок.
 
 * **Услуга** — характерная категория импортных товаров с указанием центра
-  производства: аттическая чернофигурная керамика (Афины), этрусское буккеро
-  (Цере и Вульчи), синопские амфоры (Синопа) и т. д.
+  производства. В коде и в адресах сущность называется **`import_categories`**:
+  аттическая чернофигурная керамика (Афины), этрусское буккеро (Цере и Вульчи),
+  синопские амфоры (Синопа) и т. д.
+* **Поля предметной области** — дата начала и дата конца бытования типа
+  (`DateStart`, `DateEnd`). По дате начала работает фильтрация.
 * **Заявка** (появится в ЛР3) — расчёт удельного веса импорта из разных
   регионов в общей массе находок на памятнике для реконструкции торговых путей.
   Задел уже сделан: на вкладке «Плитка» сервер считает доли регионов
-  по коллекции услуг.
+  по коллекции `import_categories`.
 
 Памятник, по которому собрана сводка, — Елизаветовское городище в дельте Дона.
 Номенклатура категорий, центры производства, датировки и признаки-маркёры
@@ -45,7 +48,7 @@ MEDIA_BASE_URL=/media go run ./cmd/main   # или make run-local
 ```
 
 Переменные окружения: `APP_ADDR` (по умолчанию `:8080`),
-`MEDIA_BASE_URL` (по умолчанию `http://localhost:9000/rip-media`).
+`MEDIA_BASE_URL` (по умолчанию `http://localhost:9000/import-categories`).
 
 ---
 
@@ -53,15 +56,17 @@ MEDIA_BASE_URL=/media go run ./cmd/main   # или make run-local
 
 | Требование | Где выполнено |
 |---|---|
-| Три страницы, портретный режим | `templates/feed.html`, `add.html`, `catalog.html` |
+| Три страницы, портретный режим | `templates/import_category.html`, `import_category_add.html`, `import_categories.html` |
 | Нижняя навигационная панель с тремя вкладками | `templates/_partials.html`, блок `nav` |
-| Лента: вертикальная развёртка, автопроигрывание видео, информация поверх видео, кнопка «следующий» | `feed.html` + `resources/styles/feed.css` |
-| Добавление: разделённые поля для изображения, видео, текста и параметров, без сохранения | `add.html` |
-| Плитка: двухколончатый список карточек с изображением, названием, количеством лайков | `catalog.html`, `.grid` в `catalog.css` |
-| Фильтрация на сервере по одному числовому параметру | `input[name=min_finds]` → `Repository.GetPublished(minFinds)` |
-| Три статуса услуги, «удалён» не отображается | `ds.Status`, фильтр в `GetPublished` и `GetByID` |
+| Лента: вертикальная развёртка, автопроигрывание видео, информация поверх видео | `import_category.html` + `resources/styles/import_category.css` |
+| Лента: короткое описание в две строки с раскрытием «Ещё» | `.feed__desc` + скрытый чекбокс `#more`, чистый CSS |
+| Лента: параметры и обе иконки (лайк, «следующий») в правом рельсе | блок `.rail` в `import_category.html` |
+| Добавление: разделённые поля для изображения, видео, текста и параметров, без сохранения | `import_category_add.html` |
+| Плитка: двухколончатый список карточек с изображением, названием, количеством лайков | `import_categories.html`, `.grid` в `import_categories.css` |
+| Фильтрация на сервере по полю предметной области | календарь `input[type=date][name=date_start]` → `Repository.ImportCategories(dateStart)` |
+| Статусы услуги, «удалена» не отображается | `ds.Status`, фильтр в `ImportCategories` и `ImportCategoryByID` |
 | Три GET-запроса | см. раздел 3 |
-| Одна модель-коллекция, без БД | `internal/app/repository/data.go` — массив `seed` |
+| Одна модель-коллекция, без БД | `internal/app/repository/import_categories_data.go` — массив `importCategories` |
 | Массив услуг с ID лайков | поле `LikedBy []int`, метод `Likes()` |
 | Изображения и видео в Minio, в модели — отдельные поля | `ImageURL`, `VideoURL`; заполняются в `repository.New` |
 | Без JavaScript | во всём проекте нет ни одного `<script>` |
@@ -74,83 +79,175 @@ MEDIA_BASE_URL=/media go run ./cmd/main   # или make run-local
 
 | № | Запрос | Контроллер | Что делает |
 |---|---|---|---|
-| 1 | `GET /feed/:id` | `Handler.FeedPage` | лента по ID услуги; ID подставляется в URL, следующая карточка — `/feed/{NextID}` |
-| 2 | `GET /add` | `Handler.AddPage` | получение черновика: форма заполняется услугой со статусом `draft` |
-| 3 | `GET /catalog?min_finds=N` | `Handler.CatalogPage` | список всех опубликованных карточек с серверной фильтрацией |
+| 1 | `GET /import_categories?date_start=0500-01-01` | `Handler.ImportCategoryList` | список карточек с серверной фильтрацией по дате начала |
+| 2 | `GET /import_categories/add` | `Handler.ImportCategoryAdd` | форма добавления категории импорта |
+| 3 | `GET /import_categories/feed/:id` | `Handler.ImportCategoryFeed` | лента по ID услуги; следующая карточка — `/import_categories/feed/{NextID}` |
 
 Проверка из консоли:
 
 ```bash
-curl -i http://localhost:8080/feed/1
-curl -i http://localhost:8080/add
-curl -i "http://localhost:8080/catalog?min_finds=150"   # вернёт 3 карточки из 14
+curl -i http://localhost:8080/import_categories/feed/1
+curl -i http://localhost:8080/import_categories/add
+curl -i "http://localhost:8080/import_categories?date_start=0500-01-01"   # 6 категорий из 15
 ```
 
 Во вкладке Network браузера видно: параметр фильтрации уходит в query string
 методом GET (форма на странице плитки объявлена как `method="get"`),
 идентификатор услуги — в пути URL, а в HTML Response карточек лежат абсолютные
 ссылки на объекты Minio вида
-`http://localhost:9000/rip-media/img/attic-black-figure.jpg`.
+`http://localhost:9000/import-categories/img/attic-black-figure.jpg`.
 
 ---
 
 ## 4. Структура проекта
 
 ```
-cmd/main/main.go                 точка входа
+cmd/main/main.go                              точка входа
 internal/
-  api/server.go                  конфигурация, шаблоны, статика, маршрутизация
+  api/server.go                               конфигурация, шаблоны, статика, маршрутизация
   app/
-    ds/service.go                структуры предметной области (Model)
-    repository/repository.go     доступ к коллекции, фильтрация, расчёт долей
-    repository/data.go           сама коллекция услуг
-    handler/handler.go           контроллеры трёх страниц (View в MVT)
-templates/                       шаблоны страниц (Template в MVT)
-resources/styles/                app.css, feed.css, catalog.css, add.css
-resources/img/favicon.svg
-media/img, media/video           исходники для заливки в Minio
-deployments/docker-compose.yml   Minio + инициализация бакета
-scripts/upload_media.sh          ручная заливка медиа клиентом mc
-tools/genmedia/gen.py            генератор изображений и видео
-docs/figma.md                    спецификация трёх экранов для Figma
-docs/screens/                    скриншоты трёх страниц (390 × 844)
+    ds/import_category.go                     структуры предметной области (Model)
+    repository/import_categories.go           доступ к коллекции, фильтрация, расчёт долей
+    repository/import_categories_data.go      сама коллекция услуг
+    handler/import_categories.go              контроллеры трёх страниц (View в MVT)
+templates/import_category.html                лента
+templates/import_categories.html              плитка
+templates/import_category_add.html            добавление
+templates/_partials.html, error.html          общие блоки и страница 404
+resources/styles/                             app.css и по файлу на каждую страницу
+media/img, media/video                        исходники для заливки в Minio
+deployments/docker-compose.yml                Minio + инициализация бакета
+scripts/upload_media.sh                       ручная заливка медиа клиентом mc
+tools/genmedia/gen.py                         генератор изображений и видео
+tools/genfigma/gen_svg.py                     генератор макетов трёх экранов для Figma
+docs/figma.md, docs/figma/                    инструкция и SVG-заготовки макетов
+docs/screens/                                 скриншоты страниц
 ```
 
 ---
 
 ## 5. Модель данных
 
-Одна коллекция `[]ds.ImportCategory` — 16 записей: 14 опубликованных,
-1 черновик (книдские амфоры, показывается на странице добавления)
+Одна коллекция `[]ds.ImportCategory` — 16 записей: 15 действующих
 и 1 удалённая (мендейские амфоры, не отображается нигде).
 
 ```go
 type ImportCategory struct {
     ID               int
     Slug             string
-    Title            string   // название категории
-    Shape            string   // морфологический тип
-    ProductionCenter string   // центр производства
-    Region           string   // регион-поставщик — по нему считается удельный вес
-    Period           string   // датировка
-    Diagnostics      string   // признаки-маркёры
-    Description      string   // справка
-    FindsCount       int      // число фрагментов — параметр фильтрации
-    ImageURL         string   // объект в Minio
-    VideoURL         string   // объект в Minio
-    LikedBy          []int    // ID пользователей, поставивших лайк
-    Status           Status   // draft | published | deleted
+    Title            string    // название категории
+    Shape            string    // морфологический тип
+    ProductionCenter string    // центр производства
+    Region           string    // регион-поставщик — по нему считается удельный вес
+    DateStart        time.Time // дата начала бытования типа — поле фильтрации
+    DateEnd          time.Time // дата конца бытования типа
+    Diagnostics      string    // признаки-маркёры
+    Description      string    // справка
+    FindsCount       int       // число фрагментов в сводке
+    ImageURL         string    // объект в Minio
+    VideoURL         string    // объект в Minio
+    LikedBy          []int     // ID пользователей, поставивших лайк
+    Status           Status    // active | deleted
 }
 ```
 
+**Даты до нашей эры.** Все датировки варианта относятся к эпохе до н. э.,
+а HTML-поле `<input type="date">` не принимает отрицательный год. Поэтому год
+до н. э. хранится положительным числом: `0620-01-01` читается как
+«620 г. до н. э.» (конструктор `ds.BCE(620)`). Следствие: чем больше хранимая
+дата, тем раньше событие, поэтому сравнения в фильтре и сортировке
+инвертированы — каждое такое место помечено комментарием в коде.
+
+**Статусы.** У услуги их два: `active` («действует») и `deleted` («удалена»,
+мягкое удаление — запись остаётся в массиве, но не попадает ни в одну выборку).
+Черновик относится не к услуге, а к заявке и появится в ЛР3.
+
 Расчёт под будущую заявку уже работает: `Repository.RegionShares()` группирует
-опубликованные категории по регионам, суммирует находки и делит на общую массу.
+действующие категории по регионам, суммирует находки и делит на общую массу.
 Результат выводится на вкладке «Плитка» полосовой диаграммой (чистый CSS,
-без JavaScript). Сейчас в сводке 1306 фрагментов, лидируют Аттика (29.2 %)
-и Южное Причерноморье (25.4 %).
+без JavaScript). Сейчас в сводке 1343 фрагмента, лидируют Аттика (28.4 %)
+и Южное Причерноморье (24.7 %).
+
+---
+
+## 6. Что скопировано у arzamas.academy
+
+Стилистика снята с живого сайта через computed styles.
+
+| Элемент интерфейса | Цвет / значение | Где применено |
+|---|---|---|
+| Фон | `#111110` (графит Arzamas `#1A1A1A` в основе) | `--shell`, фон всех экранов |
+| Текст | `#E8E8E1` на тёмном, `#1A1A1A` на светлом | `--paper`, `--ink` |
+| Кнопка | заливка `#FECF00`, текст `#1A1A1A`, радиус 999 px, высота 46 px | `.btn--primary`, `.btn--filter` |
+| Карточка | фон `#E8E8E1`, радиус 20 px, тень при hover | `.card` |
+| Панель навигации (из хедера Arzamas) | фон `rgba(17,17,16,0.94)`, активный пункт `#FECF00`, неактивный `#B8B8A8` | `.tabbar` |
+| Теги-пилюли | радиус 999 px, паддинг 0 × 16, 14 px / 500 | `.pill` |
+| Длительность перехода | `transition: 0.2s` | `--fast` |
+| Шрифт | Formular (проприетарный) | заменён системным гротеском: Inter → Helvetica Neue → Arial |
+
+Три точных цвета для показа преподавателю: **#1A1A1A**, **#E8E8E1**, **#FECF00**.
+Hover: карточка приподнимается и получает тень, изображение внутри неё
+увеличивается на 4 %, кнопки перекрашиваются в жёлтый — всё за 0.2 s.
+
+---
+
+## 7. Ответы на контрольные вопросы
+
+**MVT.** Model — `internal/app/ds` и `internal/app/repository` (структуры и
+доступ к коллекции). View — `internal/app/handler`: получает запрос, забирает
+данные из репозитория и выбирает шаблон. Template — файлы в `templates/`.
+Отличие от MVC в том, что «View» здесь не представление, а обработчик, роль
+контроллера берёт на себя фреймворк с его маршрутизацией.
+
+**Компоненты MVC в лабораторной.** Контроллер — маршрутизатор Gin
+(`RegisterHandler`), который сопоставляет URL и функцию. Модель —
+`ImportCategory` и репозиторий. Представление — HTML-шаблоны плюс CSS.
+
+**Шаблонизация.** Пакет `html/template` компилирует шаблоны один раз при старте
+(`router.LoadHTMLGlob`), затем подставляет данные из `gin.H` и экранирует их
+по контексту (HTML, атрибут, CSS, URL) — поэтому строка вида `45.0%` в
+`style="width: …"` проходит проверку, а произвольный HTML был бы экранирован.
+Используются действия `{{range}}`, `{{if}}`, `{{else}}`, `{{template}}`,
+вызовы методов (`.ImportCategory.Likes`, `.PeriodLabel`) и функция `printf`.
+
+**HTTP и модель OSI.** HTTP — протокол прикладного уровня (7-й уровень OSI,
+поверх TCP на 4-м). Запрос состоит из строки `метод URI версия`, заголовков
+и тела. В работе используются методы GET (данные передаются в пути и query
+string) и коды 200, 302 (редирект с `/` на первую карточку ленты) и 404
+(запрос несуществующей или удалённой услуги).
+
+**Web.** Клиент-серверная архитектура поверх HTTP: браузер запрашивает
+документ по URL, получает HTML, затем догружает связанные ресурсы — CSS,
+изображения и видео. В нашем случае HTML отдаёт Go-приложение, а медиа —
+отдельный сервис хранения Minio по своим URL.
+
+**HTML.** Семантическая разметка: `header`, `main`, `nav`, `section`,
+`fieldset`/`legend` для группировки полей формы, `dl`/`dt`/`dd` для
+параметров в правом рельсе, `video` с атрибутами `autoplay muted loop
+playsinline` — автопроигрывание достигается средствами HTML, без JavaScript.
+Раскрытие описания по «Ещё» сделано скрытым `input[type=checkbox]`
+и `label` — тоже без JavaScript.
+
+---
+
+## 8. Порядок показа (скриншоты 1–19)
+
+* **1–7.** Задание по теме-варианту из списка; макеты трёх экранов в Figma
+  (`docs/figma.md`) рядом с теми же экранами в приложении.
+* **8–9.** arzamas.academy и таблица скопированных элементов из раздела 6:
+  кнопка, фон, текст, карточка и панель навигации.
+* **10–12.** Три страницы приложения; вкладка Network: `date_start` в query
+  string, `id` услуги в пути URL.
+* **13–17.** HTML Response страницы плитки: ссылки на `import-categories/img/…`
+  и `import-categories/video/…`, поля `ImageURL` и `VideoURL` в `repository.New`,
+  их использование в трёх шаблонах.
+* **18–19.** `RegisterHandler`: три URL и три контроллера; фильтрация —
+  `Repository.ImportCategories(dateStart)`.
+
+---
 
 ## 9. Что дальше
 
-ЛР2 — перенос коллекции в PostgreSQL через GORM, появление второй сущности
-(заявка на расчёт удельного веса) и связи «многие ко многим» между заявкой
-и категориями импорта.
+ЛР2 — перенос коллекции в PostgreSQL через GORM (таблица `import_categories`),
+появление второй сущности (заявка на расчёт удельного веса) со статусом
+«черновик» и связи «многие ко многим» между заявкой и категориями импорта.

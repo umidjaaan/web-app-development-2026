@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
     {{template "head" .}}
-    <title>Каталог импорта — Амфора</title>
-    <link rel="stylesheet" href="/resources/styles/catalog.css">
+    <title>Категории импорта — Амфора</title>
+    <link rel="stylesheet" href="/resources/styles/import_categories.css">
 </head>
 <body class="page page--catalog">
 
@@ -37,20 +37,29 @@
         {{end}}
     </section>
 
-    <form class="filter" action="/catalog" method="get">
-        <label class="filter__label" for="min_finds">Не менее, фрагментов</label>
+    <!-- фильтрация по дате начала бытования типа: календарь и кнопка -->
+    <form class="filter" action="/import_categories" method="get">
+        <label class="filter__label" for="date_start">Дата начала — не позднее</label>
         <div class="filter__row">
-            <input class="filter__input" type="number" inputmode="numeric" min="0" step="1"
-                   id="min_finds" name="min_finds" value="{{.MinFindsRaw}}" placeholder="0">
+            <input class="filter__input" type="date"
+                   id="date_start" name="date_start" value="{{.DateStart}}"
+                   min="0001-01-01" max="9999-12-31">
             <button class="btn btn--filter" type="submit">Показать</button>
         </div>
+        <p class="filter__hint">
+            Год в календаре — это год до нашей эры: 0500-01-01 читается
+            как 500 г. до н. э.
+        </p>
     </form>
 
-    <p class="catalog__found">Найдено категорий: {{.Found}}</p>
+    <p class="catalog__found">
+        Найдено категорий: {{.Found}}
+        {{if .HasFilter}}<a class="catalog__reset" href="/import_categories">сбросить фильтр</a>{{end}}
+    </p>
 
     <section class="grid">
-        {{range .Categories}}
-            <a class="card" href="/feed/{{.ID}}">
+        {{range .ImportCategories}}
+            <a class="card" href="/import_categories/feed/{{.ID}}">
                 <div class="card__media">
                     <img class="card__img" src="{{.ImageURL}}" alt="{{.Title}}" loading="lazy">
                     <span class="pill pill--card">{{.Region}}</span>
@@ -60,14 +69,14 @@
                     <p class="card__center">{{.ProductionCenter}}</p>
                     <div class="card__foot">
                         <span class="card__likes">&#9825; {{.Likes}}</span>
-                        <span class="card__finds">{{.FindsLabel}}</span>
+                        <span class="card__period">{{.PeriodShort}}</span>
                     </div>
                 </div>
             </a>
         {{else}}
             <p class="grid__empty">
-                Ни одна категория не набирает такого количества фрагментов.
-                Уменьшите порог фильтра.
+                Ни одна категория не появляется раньше выбранной даты.
+                Выберите более позднюю дату начала.
             </p>
         {{end}}
     </section>

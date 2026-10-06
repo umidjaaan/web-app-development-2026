@@ -8,14 +8,14 @@
 #   MINIO_ENDPOINT=http://localhost:9000
 #   MINIO_USER=minioadmin
 #   MINIO_PASSWORD=minioadmin
-#   MINIO_BUCKET=rip-media
+#   MINIO_BUCKET=import-categories
 
 set -e
 
 ENDPOINT="${MINIO_ENDPOINT:-http://localhost:9000}"
 USER="${MINIO_USER:-minioadmin}"
 PASSWORD="${MINIO_PASSWORD:-minioadmin}"
-BUCKET="${MINIO_BUCKET:-rip-media}"
+BUCKET="${MINIO_BUCKET:-import-categories}"
 
 if ! command -v mc > /dev/null 2>&1; then
     echo "Не найден клиент mc. Установка:"

@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="390" height="1420" viewBox="0 0 390 1420">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="390" height="1580" viewBox="0 0 390 1580">
 <title>Добавление</title>
-<rect x="0" y="0" width="390" height="1420" rx="0" fill="#111110"/>
+<rect x="0" y="0" width="390" height="1580" rx="0" fill="#111110"/>
 <g id="Topbar">
 <text x="16" y="34" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="700" fill="#E8E8E1" letter-spacing="2.4">АМФОРА</text>
 <text x="374" y="33" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8" text-anchor="end">Елизаветовское городище, дельта Дона</text>
@@ -8,98 +8,108 @@
 </g>
 <g id="Content">
 <text x="16" y="96" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="26" font-weight="700" fill="#E8E8E1">Новая категория импорта</text>
-<rect x="16" y="112" width="104" height="30" rx="999" fill="#FECF00"/>
-<text x="68.0" y="132" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="#1A1A1A" text-anchor="middle">Черновик</text>
-<text x="132" y="133" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">черновик №15 загружен с сервера</text>
+<text x="16" y="124" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="400" fill="#B8B8A8">Форма заполняется вручную: изображение и видео уходят</text>
+<text x="16" y="143" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="400" fill="#B8B8A8">в Minio, остальные поля — в коллекцию import_categories.</text>
 <g id="Fieldset-Image">
-<rect x="14" y="168" width="362" height="172" rx="20" fill="#E8E8E1" stroke="#E8E8E1" stroke-width="1" opacity="0.04"/>
-<rect x="14" y="168" width="362" height="172" rx="20" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.16"/>
-<rect x="28" y="160" width="95.2" height="16" rx="0" fill="#111110"/>
-<text x="36" y="172" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#FECF00" letter-spacing="0.88">ИЗОБРАЖЕНИЕ</text>
+<rect x="14" y="170" width="362" height="116" rx="20" fill="#E8E8E1" stroke="#E8E8E1" stroke-width="1" opacity="0.04"/>
+<rect x="14" y="170" width="362" height="116" rx="20" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.16"/>
+<rect x="28" y="162" width="95.2" height="16" rx="0" fill="#111110"/>
+<text x="36" y="174" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#FECF00" letter-spacing="0.88">ИЗОБРАЖЕНИЕ</text>
 </g>
-<defs><clipPath id="thumb1"><rect x="32" y="190" width="76" height="95" rx="10"/></clipPath></defs>
-<g clip-path="url(#thumb1)"><image x="32" y="190" width="76" height="95" preserveAspectRatio="xMidYMid slice" href="data:image/jpeg;base64,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"/></g>
-<text x="122" y="240" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#B8B8A8">knidian-amphora.jpg —</text>
-<text x="122" y="256" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#B8B8A8">объект в Minio</text>
-<rect x="32" y="300" width="140" height="32" rx="999" fill="#E8E8E1"/>
-<text x="102" y="321" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="600" fill="#1A1A1A" text-anchor="middle">Выберите файл</text>
-<text x="184" y="321" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Файл не выбран</text>
+<rect x="32" y="196" width="140" height="32" rx="16" fill="#E8E8E1"/>
+<text x="102" y="217" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="600" fill="#1A1A1A" text-anchor="middle">Выберите файл</text>
+<text x="184" y="217" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Файл не выбран</text>
+<text x="32" y="258" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#B8B8A8" opacity="0.75">JPEG, вертикальный кадр 9:16 — объект бакета в Minio.</text>
 <g id="Fieldset-Video">
-<rect x="14" y="360" width="362" height="172" rx="20" fill="#E8E8E1" stroke="#E8E8E1" stroke-width="1" opacity="0.04"/>
-<rect x="14" y="360" width="362" height="172" rx="20" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.16"/>
-<rect x="28" y="352" width="52.0" height="16" rx="0" fill="#111110"/>
-<text x="36" y="364" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#FECF00" letter-spacing="0.88">ВИДЕО</text>
+<rect x="14" y="306" width="362" height="116" rx="20" fill="#E8E8E1" stroke="#E8E8E1" stroke-width="1" opacity="0.04"/>
+<rect x="14" y="306" width="362" height="116" rx="20" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.16"/>
+<rect x="28" y="298" width="52.0" height="16" rx="0" fill="#111110"/>
+<text x="36" y="310" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#FECF00" letter-spacing="0.88">ВИДЕО</text>
 </g>
-<defs><clipPath id="thumb2"><rect x="32" y="382" width="76" height="95" rx="10"/></clipPath></defs>
-<g clip-path="url(#thumb2)"><image x="32" y="382" width="76" height="95" preserveAspectRatio="xMidYMid slice" href="data:image/jpeg;base64,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"/></g>
-<text x="122" y="432" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#B8B8A8">knidian-amphora.mp4 —</text>
-<text x="122" y="448" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#B8B8A8">объект в Minio</text>
-<rect x="32" y="492" width="140" height="32" rx="999" fill="#E8E8E1"/>
-<text x="102" y="513" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="600" fill="#1A1A1A" text-anchor="middle">Выберите файл</text>
-<text x="184" y="513" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Файл не выбран</text>
+<rect x="32" y="332" width="140" height="32" rx="16" fill="#E8E8E1"/>
+<text x="102" y="353" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="600" fill="#1A1A1A" text-anchor="middle">Выберите файл</text>
+<text x="184" y="353" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Файл не выбран</text>
+<text x="32" y="394" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#B8B8A8" opacity="0.75">MP4 без звука, зацикленное — объект бакета в Minio.</text>
 <g id="Fieldset-Text">
-<rect x="14" y="552" width="362" height="336" rx="20" fill="#E8E8E1" stroke="#E8E8E1" stroke-width="1" opacity="0.04"/>
-<rect x="14" y="552" width="362" height="336" rx="20" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.16"/>
-<rect x="28" y="544" width="73.6" height="16" rx="0" fill="#111110"/>
-<text x="36" y="556" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#FECF00" letter-spacing="0.88">ОПИСАНИЕ</text>
+<rect x="14" y="442" width="362" height="460" rx="20" fill="#E8E8E1" stroke="#E8E8E1" stroke-width="1" opacity="0.04"/>
+<rect x="14" y="442" width="362" height="460" rx="20" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.16"/>
+<rect x="28" y="434" width="73.6" height="16" rx="0" fill="#111110"/>
+<text x="36" y="446" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#FECF00" letter-spacing="0.88">ОПИСАНИЕ</text>
 </g>
-<text x="32" y="586" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Название категории</text>
-<rect x="32" y="596" width="326" height="44" rx="10" fill="#E8E8E1" opacity="0.06"/>
-<rect x="32" y="596" width="326" height="44" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
-<text x="46" y="624" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#E8E8E1">Книдские амфоры</text>
-<text x="32" y="664" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Центр производства</text>
-<rect x="32" y="674" width="326" height="44" rx="10" fill="#E8E8E1" opacity="0.06"/>
-<rect x="32" y="674" width="326" height="44" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
-<text x="46" y="702" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#E8E8E1">Книд, Кария</text>
-<text x="32" y="742" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Признаки-маркёры</text>
-<rect x="32" y="752" width="326" height="116" rx="10" fill="#E8E8E1" opacity="0.06"/>
-<rect x="32" y="752" width="326" height="116" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
-<text x="46" y="778" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#E8E8E1">Ручки с «книдским» коленчатым</text>
-<text x="46" y="800" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#E8E8E1">изломом; клейма с именем</text>
-<text x="46" y="822" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#E8E8E1">фрурарха и эмблемой —</text>
-<text x="46" y="844" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#E8E8E1">бычьей головой.</text>
+<text x="32" y="476" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Название категории</text>
+<rect x="32" y="486" width="326" height="44" rx="10" fill="#E8E8E1" opacity="0.06"/>
+<rect x="32" y="486" width="326" height="44" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
+<text x="46" y="514" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#B8B8A8" opacity="0.5">Например: Книдские амфоры</text>
+<text x="32" y="554" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Центр производства</text>
+<rect x="32" y="564" width="326" height="44" rx="10" fill="#E8E8E1" opacity="0.06"/>
+<rect x="32" y="564" width="326" height="44" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
+<text x="46" y="592" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#B8B8A8" opacity="0.5">Город, область</text>
+<text x="32" y="632" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Признаки-маркёры</text>
+<rect x="32" y="642" width="326" height="100" rx="10" fill="#E8E8E1" opacity="0.06"/>
+<rect x="32" y="642" width="326" height="100" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
+<text x="46" y="670" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#B8B8A8" opacity="0.5">По каким признакам категория</text>
+<text x="46" y="692" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#B8B8A8" opacity="0.5">опознаётся во фрагменте</text>
+<text x="32" y="766" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Справка</text>
+<rect x="32" y="776" width="326" height="100" rx="10" fill="#E8E8E1" opacity="0.06"/>
+<rect x="32" y="776" width="326" height="100" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
+<text x="46" y="804" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#B8B8A8" opacity="0.5">Значение категории для</text>
+<text x="46" y="826" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#B8B8A8" opacity="0.5">реконструкции связей</text>
 <g id="Fieldset-Params">
-<rect x="14" y="912" width="362" height="316" rx="20" fill="#E8E8E1" stroke="#E8E8E1" stroke-width="1" opacity="0.04"/>
-<rect x="14" y="912" width="362" height="316" rx="20" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.16"/>
-<rect x="28" y="904" width="131.2" height="16" rx="0" fill="#111110"/>
-<text x="36" y="916" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#FECF00" letter-spacing="0.88">ПАРАМЕТРЫ СВОДКИ</text>
+<rect x="14" y="930" width="362" height="460" rx="20" fill="#E8E8E1" stroke="#E8E8E1" stroke-width="1" opacity="0.04"/>
+<rect x="14" y="930" width="362" height="460" rx="20" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.16"/>
+<rect x="28" y="922" width="131.2" height="16" rx="0" fill="#111110"/>
+<text x="36" y="934" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#FECF00" letter-spacing="0.88">ПАРАМЕТРЫ СВОДКИ</text>
 </g>
-<text x="32" y="946" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Регион-поставщик</text>
-<rect x="32" y="956" width="326" height="44" rx="10" fill="#E8E8E1" opacity="0.06"/>
-<rect x="32" y="956" width="326" height="44" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
-<text x="46" y="984" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#E8E8E1">Восточная Эгеида</text>
-<path d="M336 976 l6 8 l6 -8" fill="none" stroke="#B8B8A8" stroke-width="1.6"/>
-<text x="32" y="1024" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Морфологический тип</text>
-<rect x="32" y="1034" width="326" height="44" rx="10" fill="#E8E8E1" opacity="0.06"/>
-<rect x="32" y="1034" width="326" height="44" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
-<text x="46" y="1062" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#E8E8E1">Тарная амфора</text>
-<text x="32" y="1102" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Датировка</text>
-<rect x="32" y="1112" width="326" height="44" rx="10" fill="#E8E8E1" opacity="0.06"/>
-<rect x="32" y="1112" width="326" height="44" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
-<text x="46" y="1140" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#E8E8E1">III–I вв. до н. э.</text>
-<text x="32" y="1180" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Число фрагментов на памятнике</text>
-<rect x="32" y="1190" width="326" height="44" rx="10" fill="#E8E8E1" opacity="0.06"/>
-<rect x="32" y="1190" width="326" height="44" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
-<text x="46" y="1218" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#E8E8E1">0</text>
-<rect x="14" y="1256" width="362" height="48" rx="999" fill="#FECF00"/>
-<text x="195" y="1286" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#1A1A1A" text-anchor="middle">Сохранить категорию</text>
-<text x="14" y="1318" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#B8B8A8" opacity="0.75">На этом этапе форма ничего не сохраняет: запись</text>
-<text x="14" y="1334" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#B8B8A8" opacity="0.75">в базу появится в лабораторной работе №3.</text>
+<text x="32" y="964" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Регион-поставщик</text>
+<rect x="32" y="974" width="326" height="44" rx="10" fill="#E8E8E1" opacity="0.06"/>
+<rect x="32" y="974" width="326" height="44" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
+<text x="46" y="1002" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#E8E8E1">Аттика</text>
+<path d="M336 992 l6 8 l6 -8" fill="none" stroke="#B8B8A8" stroke-width="1.6"/>
+<text x="32" y="1042" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Морфологический тип</text>
+<rect x="32" y="1052" width="326" height="44" rx="10" fill="#E8E8E1" opacity="0.06"/>
+<rect x="32" y="1052" width="326" height="44" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
+<text x="46" y="1080" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#B8B8A8" opacity="0.5">Амфора, килик, чаша</text>
+<text x="32" y="1120" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Дата начала бытования типа</text>
+<rect x="32" y="1130" width="326" height="44" rx="10" fill="#E8E8E1" opacity="0.06"/>
+<rect x="32" y="1130" width="326" height="44" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
+<text x="46" y="1158" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#B8B8A8" opacity="0.5">дд.мм.гггг</text>
+<rect x="322" y="1142" width="20" height="20" rx="3" fill="none" stroke="#B8B8A8" stroke-width="1.4"/>
+<line x1="322" y1="1148" x2="342" y2="1148" stroke="#B8B8A8" stroke-width="1.4"/>
+<line x1="328" y1="1139" x2="328" y2="1144" stroke="#B8B8A8" stroke-width="1.4"/>
+<line x1="336" y1="1139" x2="336" y2="1144" stroke="#B8B8A8" stroke-width="1.4"/>
+<text x="32" y="1198" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Дата конца бытования типа</text>
+<rect x="32" y="1208" width="326" height="44" rx="10" fill="#E8E8E1" opacity="0.06"/>
+<rect x="32" y="1208" width="326" height="44" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
+<text x="46" y="1236" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#B8B8A8" opacity="0.5">дд.мм.гггг</text>
+<rect x="322" y="1220" width="20" height="20" rx="3" fill="none" stroke="#B8B8A8" stroke-width="1.4"/>
+<line x1="322" y1="1226" x2="342" y2="1226" stroke="#B8B8A8" stroke-width="1.4"/>
+<line x1="328" y1="1217" x2="328" y2="1222" stroke="#B8B8A8" stroke-width="1.4"/>
+<line x1="336" y1="1217" x2="336" y2="1222" stroke="#B8B8A8" stroke-width="1.4"/>
+<text x="32" y="1292" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#B8B8A8" opacity="0.75">Год в календаре — это год до нашей эры: 0250-01-01</text>
+<text x="32" y="1308" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#B8B8A8" opacity="0.75">читается как 250 г. до н. э.</text>
+<text x="32" y="1332" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#B8B8A8">Число фрагментов на памятнике</text>
+<rect x="32" y="1342" width="326" height="44" rx="10" fill="#E8E8E1" opacity="0.06"/>
+<rect x="32" y="1342" width="326" height="44" rx="10" fill="none" stroke="#E8E8E1" stroke-width="1" opacity="0.22"/>
+<text x="46" y="1370" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#B8B8A8" opacity="0.5">0</text>
+<rect x="14" y="1428" width="362" height="48" rx="24" fill="#FECF00"/>
+<text x="195" y="1458" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#1A1A1A" text-anchor="middle">Сохранить категорию</text>
+<text x="14" y="1488" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#B8B8A8" opacity="0.75">На этом этапе форма ничего не сохраняет: запись</text>
+<text x="14" y="1504" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#B8B8A8" opacity="0.75">в базу появится в лабораторной работе №3.</text>
 </g>
 <g id="Tabbar">
-<rect x="0" y="1346" width="390" height="74" rx="0" fill="#111110"/>
-<line x1="0" y1="1346" x2="390" y2="1346" stroke="#E8E8E1" stroke-width="1" opacity="0.14"/>
-<rect x="54.0" y="1364" width="22" height="22" rx="5" fill="none" stroke="#B8B8A8" stroke-width="1.6"/>
-<path d="M61.5 1370.5 L61.5 1379.5 L70.5 1375 Z" fill="#B8B8A8"/>
-<text x="65.0" y="1404" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="500" fill="#B8B8A8" text-anchor="middle">Лента</text>
-<rect x="184.0" y="1364" width="22" height="22" rx="6" fill="none" stroke="#FECF00" stroke-width="1.6"/>
-<line x1="195.0" y1="1369" x2="195.0" y2="1381" stroke="#FECF00" stroke-width="1.7"/>
-<line x1="189.0" y1="1375" x2="201.0" y2="1375" stroke="#FECF00" stroke-width="1.7"/>
-<text x="195.0" y="1404" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="500" fill="#FECF00" text-anchor="middle">Добавление</text>
-<rect x="314.0" y="1364" width="10" height="10" rx="2.5" fill="none" stroke="#B8B8A8" stroke-width="1.6"/>
-<rect x="326.0" y="1364" width="10" height="10" rx="2.5" fill="none" stroke="#B8B8A8" stroke-width="1.6"/>
-<rect x="314.0" y="1376" width="10" height="10" rx="2.5" fill="none" stroke="#B8B8A8" stroke-width="1.6"/>
-<rect x="326.0" y="1376" width="10" height="10" rx="2.5" fill="none" stroke="#B8B8A8" stroke-width="1.6"/>
-<text x="325.0" y="1404" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="500" fill="#B8B8A8" text-anchor="middle">Плитка</text>
+<rect x="0" y="1506" width="390" height="74" rx="0" fill="#111110"/>
+<line x1="0" y1="1506" x2="390" y2="1506" stroke="#E8E8E1" stroke-width="1" opacity="0.14"/>
+<rect x="54.0" y="1524" width="22" height="22" rx="5" fill="none" stroke="#B8B8A8" stroke-width="1.6"/>
+<path d="M61.5 1530.5 L61.5 1539.5 L70.5 1535 Z" fill="#B8B8A8"/>
+<text x="65.0" y="1564" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="500" fill="#B8B8A8" text-anchor="middle">Лента</text>
+<rect x="184.0" y="1524" width="22" height="22" rx="6" fill="none" stroke="#FECF00" stroke-width="1.6"/>
+<line x1="195.0" y1="1529" x2="195.0" y2="1541" stroke="#FECF00" stroke-width="1.7"/>
+<line x1="189.0" y1="1535" x2="201.0" y2="1535" stroke="#FECF00" stroke-width="1.7"/>
+<text x="195.0" y="1564" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="500" fill="#FECF00" text-anchor="middle">Добавление</text>
+<rect x="314.0" y="1524" width="10" height="10" rx="2.5" fill="none" stroke="#B8B8A8" stroke-width="1.6"/>
+<rect x="326.0" y="1524" width="10" height="10" rx="2.5" fill="none" stroke="#B8B8A8" stroke-width="1.6"/>
+<rect x="314.0" y="1536" width="10" height="10" rx="2.5" fill="none" stroke="#B8B8A8" stroke-width="1.6"/>
+<rect x="326.0" y="1536" width="10" height="10" rx="2.5" fill="none" stroke="#B8B8A8" stroke-width="1.6"/>
+<text x="325.0" y="1564" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="500" fill="#B8B8A8" text-anchor="middle">Плитка</text>
 </g>
 </svg>

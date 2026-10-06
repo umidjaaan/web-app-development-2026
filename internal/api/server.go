@@ -32,7 +32,7 @@ func envOr(key, fallback string) string {
 func LoadConfig() Config {
 	return Config{
 		Addr:         envOr("APP_ADDR", ":8080"),
-		MediaBaseURL: envOr("MEDIA_BASE_URL", "http://localhost:9000/rip-media"),
+		MediaBaseURL: envOr("MEDIA_BASE_URL", "http://localhost:9000/import-categories"),
 	}
 }
 

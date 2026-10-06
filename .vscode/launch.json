@@ -10,7 +10,7 @@
             "cwd": "${workspaceFolder}",
             "env": {
                 "APP_ADDR": ":8080",
-                "MEDIA_BASE_URL": "http://localhost:9000/rip-media"
+                "MEDIA_BASE_URL": "http://localhost:9000/import-categories"
             }
         },
         {
