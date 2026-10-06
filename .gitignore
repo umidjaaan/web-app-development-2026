@@ -11,3 +11,5 @@ bin/
 Thumbs.db
 
 # настройки VS Code коммитим: .vscode/ намеренно не игнорируется
+
+__pycache__/
