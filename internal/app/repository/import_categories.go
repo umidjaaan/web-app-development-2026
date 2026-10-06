@@ -1,184 +1,327 @@
 // Package repository — слой доступа к данным (Model в терминах MVT).
-// На этом этапе коллекция import_categories хранится в оперативной памяти
-// в виде массива; база данных подключается в ЛР2.
+// Данные лежат в PostgreSQL, обращение к ним идёт через ORM GORM;
+// единственное исключение — логическое удаление: оно выполняется
+// прямым SQL-запросом UPDATE через курсор (соединение database/sql).
 package repository
 
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
 
 	"rip/lab1/internal/app/ds"
 )
 
+// Site — археологический памятник, по материалам которого собрана сводка.
+const Site = "Елизаветовское городище, дельта Дона"
+
 // ErrNotFound возвращается, когда категория отсутствует или недоступна.
 var ErrNotFound = errors.New("категория импорта не найдена")
 
-// Repository инкапсулирует коллекцию import_categories.
+// Repository инкапсулирует работу с таблицами import_categories, users и likes.
 type Repository struct {
-	importCategories []ds.ImportCategory
+	db        *gorm.DB
+	mediaBase string
 }
 
-// New создаёт репозиторий и проставляет ссылки на объекты Minio.
-// mediaBase — публичный базовый URL бакета, например
-// http://localhost:9000/import-categories
-func New(mediaBase string) *Repository {
-	base := strings.TrimRight(mediaBase, "/")
-
-	items := make([]ds.ImportCategory, len(importCategories))
-	copy(items, importCategories)
-	for i := range items {
-		items[i].ImageURL = fmt.Sprintf("%s/img/%s.jpg", base, items[i].Slug)
-		items[i].VideoURL = fmt.Sprintf("%s/video/%s.mp4", base, items[i].Slug)
-	}
-
-	return &Repository{importCategories: items}
+// New создаёт репозиторий поверх открытого соединения с базой данных.
+func New(db *gorm.DB, mediaBase string) *Repository {
+	return &Repository{db: db, mediaBase: strings.TrimRight(mediaBase, "/")}
 }
+
+// DB отдаёт соединение (нужно для миграций и служебных задач).
+func (r *Repository) DB() *gorm.DB { return r.db }
 
 // Site возвращает название памятника, по которому собрана сводка.
 func (r *Repository) Site() string { return Site }
 
-// ImportCategories возвращает действующие категории, появившиеся не позднее
-// указанной даты начала бытования. Нулевая дата означает «фильтр не задан».
-// Фильтрация выполняется на сервере.
-func (r *Repository) ImportCategories(notLaterThan time.Time) []ds.ImportCategory {
-	result := make([]ds.ImportCategory, 0, len(r.importCategories))
-	for _, c := range r.importCategories {
-		if c.Status != ds.StatusActive {
-			continue
-		}
+// ==========================================================================
+// Чтение (GET) — через ORM
+// ==========================================================================
+
+// ImportCategories — опубликованные категории для ленты и плитки.
+// Фильтр — по дате начала бытования типа (календарь на странице «Плитка»).
+// Черновики и удалённые записи сюда не попадают.
+func (r *Repository) ImportCategories(dateStart time.Time) ([]ds.ImportCategory, error) {
+	var items []ds.ImportCategory
+
+	query := r.db.Where("status = ?", ds.StatusPublished)
+
+	if !dateStart.IsZero() {
 		// Год до н. э. хранится положительным числом, поэтому «появилась
-		// не позднее выбранной даты» — это DateStart НЕ РАНЬШЕ этой даты
-		// в хранимом виде (620 г. до н. э. предшествует 500 г. до н. э.).
-		if !notLaterThan.IsZero() && c.DateStart.Before(notLaterThan) {
-			continue
+		// не позднее выбранной даты» — это date_start >= выбранной даты.
+		query = query.Where("date_start >= ?", dateStart)
+	}
+
+	// Хронологический порядок: от ранних категорий к поздним
+	// (в хранимом виде это убывание даты — см. ds.BCE).
+	if err := query.Order("date_start DESC, id ASC").Find(&items).Error; err != nil {
+		return nil, err
+	}
+
+	r.fillLikes(items)
+	return items, nil
+}
+
+// ImportCategoryByID — одна опубликованная категория (страница ленты).
+// Удалённая запись не находится — в приложении это страница 404.
+func (r *Repository) ImportCategoryByID(id uint) (ds.ImportCategory, error) {
+	var item ds.ImportCategory
+
+	err := r.db.Where("id = ? AND status = ?", id, ds.StatusPublished).First(&item).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ds.ImportCategory{}, ErrNotFound
 		}
-		result = append(result, c)
+		return ds.ImportCategory{}, err
 	}
-	// Сортировка хронологическая: от самых ранних категорий к поздним.
-	// В хранимом виде это убывание даты — см. комментарий к ds.BCE.
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].DateStart.After(result[j].DateStart)
-	})
-	return result
+
+	single := []ds.ImportCategory{item}
+	r.fillLikes(single)
+	return single[0], nil
 }
 
-// ImportCategoryByID возвращает действующую категорию по идентификатору.
-// Удалённые категории через этот метод недоступны.
-func (r *Repository) ImportCategoryByID(id int) (ds.ImportCategory, error) {
-	for _, c := range r.importCategories {
-		if c.ID == id && c.Status == ds.StatusActive {
-			return c, nil
+// DraftByUser — черновик пользователя, если он есть (у пользователя
+// может быть не больше одного черновика — частичный уникальный индекс).
+func (r *Repository) DraftByUser(userID uint) (ds.ImportCategory, error) {
+	var item ds.ImportCategory
+
+	err := r.db.Where("status = ? AND creator_id = ?", ds.StatusDraft, userID).First(&item).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ds.ImportCategory{}, ErrNotFound
 		}
+		return ds.ImportCategory{}, err
 	}
-	return ds.ImportCategory{}, ErrNotFound
-}
-
-// FirstImportCategoryID — идентификатор первой категории ленты.
-func (r *Repository) FirstImportCategoryID() int {
-	all := r.ImportCategories(time.Time{})
-	if len(all) == 0 {
-		return 0
-	}
-	return all[0].ID
-}
-
-// NextImportCategoryID возвращает идентификатор следующей категории
-// ленты (по кругу).
-func (r *Repository) NextImportCategoryID(id int) int {
-	all := r.ImportCategories(time.Time{})
-	if len(all) == 0 {
-		return 0
-	}
-	for i, c := range all {
-		if c.ID == id {
-			return all[(i+1)%len(all)].ID
-		}
-	}
-	return all[0].ID
-}
-
-// Position возвращает порядковый номер категории в ленте и общее их число.
-func (r *Repository) Position(id int) (int, int) {
-	all := r.ImportCategories(time.Time{})
-	for i, c := range all {
-		if c.ID == id {
-			return i + 1, len(all)
-		}
-	}
-	return 0, len(all)
-}
-
-// TotalFinds — общая масса учтённых импортных находок памятника.
-func (r *Repository) TotalFinds() int {
-	total := 0
-	for _, c := range r.ImportCategories(time.Time{}) {
-		total += c.FindsCount
-	}
-	return total
-}
-
-// RegionShares — удельный вес каждого региона-поставщика в общей массе
-// находок. Именно этот расчёт лежит в основе будущей «заявки»
-// на реконструкцию торговых путей (ЛР3).
-func (r *Repository) RegionShares() []ds.RegionShare {
-	total := r.TotalFinds()
-	byRegion := make(map[string]*ds.RegionShare)
-
-	for _, c := range r.ImportCategories(time.Time{}) {
-		share, ok := byRegion[c.Region]
-		if !ok {
-			share = &ds.RegionShare{Region: c.Region}
-			byRegion[c.Region] = share
-		}
-		share.Finds += c.FindsCount
-		share.Categories++
-	}
-
-	result := make([]ds.RegionShare, 0, len(byRegion))
-	for _, share := range byRegion {
-		if total > 0 {
-			share.Percent = float64(share.Finds) / float64(total) * 100.0
-		}
-		result = append(result, *share)
-	}
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Finds > result[j].Finds
-	})
-	return result
-}
-
-// MaxRegionPercent — наибольшая доля региона, нужна для нормировки диаграммы.
-func (r *Repository) MaxRegionPercent() float64 {
-	shares := r.RegionShares()
-	if len(shares) == 0 {
-		return 0
-	}
-	return shares[0].Percent
-}
-
-// ShareOf — доля конкретной категории в общей массе находок, в процентах.
-func (r *Repository) ShareOf(c ds.ImportCategory) float64 {
-	total := r.TotalFinds()
-	if total == 0 {
-		return 0
-	}
-	return float64(c.FindsCount) / float64(total) * 100.0
+	return item, nil
 }
 
 // Regions — список регионов-поставщиков для выпадающего списка формы.
-func (r *Repository) Regions() []string {
-	seen := make(map[string]bool)
-	result := make([]string, 0)
-	for _, c := range r.importCategories {
-		if c.Status == ds.StatusDeleted || seen[c.Region] {
-			continue
+func (r *Repository) Regions() ([]string, error) {
+	var regions []string
+	err := r.db.Model(&ds.ImportCategory{}).
+		Where("status = ?", ds.StatusPublished).
+		Distinct().
+		Order("region ASC").
+		Pluck("region", &regions).Error
+	return regions, err
+}
+
+// LikesByUser — сколько категорий отметил пользователь (таблица м-м likes).
+func (r *Repository) LikesByUser(userID uint) (int, error) {
+	var count int64
+	err := r.db.Model(&ds.Like{}).Where("user_id = ?", userID).Count(&count).Error
+	return int(count), err
+}
+
+// UserByID — текущий пользователь приложения.
+func (r *Repository) UserByID(id uint) (ds.User, error) {
+	var user ds.User
+	if err := r.db.First(&user, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ds.User{}, ErrNotFound
 		}
-		seen[c.Region] = true
-		result = append(result, c.Region)
+		return ds.User{}, err
 	}
-	sort.Strings(result)
-	return result
+	return user, nil
+}
+
+// ==========================================================================
+// Изменение (POST) — через ORM: две кнопки и два статуса
+// ==========================================================================
+
+// CreateDraft — кнопка «Далее»: создаёт черновик (INSERT через ORM).
+// В черновике пока только фото, видео и название; остальное заполняется
+// на следующем шаге, перед публикацией.
+func (r *Repository) CreateDraft(item *ds.ImportCategory) error {
+	item.Status = ds.StatusDraft
+	if item.Slug == "" {
+		item.Slug = r.uniqueSlug(item.Title)
+	}
+	return r.db.Create(item).Error
+}
+
+// PublishDraft — кнопка «Опубликовать»: записывает поля черновика
+// и меняет статус на «Опубликована» (UPDATE через ORM).
+// Опубликовать можно только свой черновик.
+func (r *Repository) PublishDraft(id uint, userID uint, fields map[string]any) error {
+	fields["status"] = ds.StatusPublished
+	fields["updated_at"] = time.Now()
+
+	result := r.db.Model(&ds.ImportCategory{}).
+		Where("id = ? AND status = ? AND creator_id = ?", id, ds.StatusDraft, userID).
+		Updates(fields)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// ==========================================================================
+// Логическое удаление — прямым SQL UPDATE через курсор (без ORM)
+// ==========================================================================
+
+// DeleteImportCategory — логическое удаление категории.
+// По заданию выполняется не средствами ORM, а через курсор: берём из GORM
+// «голое» соединение database/sql и выполняем SQL-запрос UPDATE.
+// Запись остаётся в таблице, меняется только статус.
+func (r *Repository) DeleteImportCategory(id uint) error {
+	sqlDB, err := r.db.DB() // соединение database/sql — аналог курсора
+	if err != nil {
+		return err
+	}
+
+	res, err := sqlDB.Exec(`
+		UPDATE import_categories
+		   SET status = 'deleted', updated_at = NOW()
+		 WHERE id = $1 AND status <> 'deleted'`, id)
+	if err != nil {
+		return err
+	}
+
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// ==========================================================================
+// Навигация по ленте
+// ==========================================================================
+
+// FirstImportCategoryID — идентификатор первой категории ленты.
+func (r *Repository) FirstImportCategoryID() uint {
+	items, err := r.ImportCategories(time.Time{})
+	if err != nil || len(items) == 0 {
+		return 0
+	}
+	return items[0].ID
+}
+
+// NextImportCategoryID — идентификатор следующей категории ленты (по кругу).
+func (r *Repository) NextImportCategoryID(id uint) uint {
+	items, err := r.ImportCategories(time.Time{})
+	if err != nil || len(items) == 0 {
+		return 0
+	}
+	for i, item := range items {
+		if item.ID == id {
+			return items[(i+1)%len(items)].ID
+		}
+	}
+	return items[0].ID
+}
+
+// Position — порядковый номер категории в ленте и общее их число.
+func (r *Repository) Position(id uint) (int, int) {
+	items, err := r.ImportCategories(time.Time{})
+	if err != nil {
+		return 0, 0
+	}
+	for i, item := range items {
+		if item.ID == id {
+			return i + 1, len(items)
+		}
+	}
+	return 0, len(items)
+}
+
+// ==========================================================================
+// Вспомогательное
+// ==========================================================================
+
+// fillLikes проставляет количество лайков одним запросом по таблице likes.
+func (r *Repository) fillLikes(items []ds.ImportCategory) {
+	if len(items) == 0 {
+		return
+	}
+
+	ids := make([]uint, 0, len(items))
+	for _, item := range items {
+		ids = append(ids, item.ID)
+	}
+
+	var rows []struct {
+		ImportCategoryID uint
+		Total            int
+	}
+	err := r.db.Model(&ds.Like{}).
+		Select("import_category_id, COUNT(*) AS total").
+		Where("import_category_id IN ?", ids).
+		Group("import_category_id").
+		Scan(&rows).Error
+	if err != nil {
+		return
+	}
+
+	byID := make(map[uint]int, len(rows))
+	for _, row := range rows {
+		byID[row.ImportCategoryID] = row.Total
+	}
+	for i := range items {
+		items[i].LikesTotal = byID[items[i].ID]
+	}
+}
+
+func (r *Repository) mediaURL(prefix, slug, ext string) string {
+	return fmt.Sprintf("%s/%s/%s.%s", r.mediaBase, prefix, slug, ext)
+}
+
+// uniqueSlug собирает slug из названия и добивается его уникальности.
+func (r *Repository) uniqueSlug(title string) string {
+	base := slugify(title)
+	if base == "" {
+		base = "import-category"
+	}
+
+	slug := base
+	for i := 2; i < 100; i++ {
+		var count int64
+		if err := r.db.Model(&ds.ImportCategory{}).
+			Where("slug = ?", slug).Count(&count).Error; err != nil {
+			break
+		}
+		if count == 0 {
+			return slug
+		}
+		slug = fmt.Sprintf("%s-%d", base, i)
+	}
+	return fmt.Sprintf("%s-%d", base, time.Now().Unix())
+}
+
+// translit — таблица для превращения названия в латинский slug.
+var translit = map[rune]string{
+	'а': "a", 'б': "b", 'в': "v", 'г': "g", 'д': "d", 'е': "e", 'ё': "e",
+	'ж': "zh", 'з': "z", 'и': "i", 'й': "y", 'к': "k", 'л': "l", 'м': "m",
+	'н': "n", 'о': "o", 'п': "p", 'р': "r", 'с': "s", 'т': "t", 'у': "u",
+	'ф': "f", 'х': "h", 'ц': "c", 'ч': "ch", 'ш': "sh", 'щ': "sch",
+	'ъ': "", 'ы': "y", 'ь': "", 'э': "e", 'ю': "yu", 'я': "ya",
+}
+
+func slugify(title string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(strings.TrimSpace(title)) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case translit[r] != "":
+			b.WriteString(translit[r])
+		case r == ' ' || r == '-' || r == '_':
+			b.WriteByte('-')
+		}
+	}
+	return strings.Trim(collapseDashes(b.String()), "-")
+}
+
+func collapseDashes(s string) string {
+	for strings.Contains(s, "--") {
+		s = strings.ReplaceAll(s, "--", "-")
+	}
+	return s
 }

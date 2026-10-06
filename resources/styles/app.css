@@ -119,40 +119,31 @@ a {
     backdrop-filter: blur(4px);
 }
 
-/* --- кнопки -------------------------------------------------------------- */
+/* --- кнопки: все одного стиля ------------------------------------------ */
+/* Жёлтая «таблетка» с тёмным текстом — единый стиль кнопок по теме
+   (акцент Arzamas). Модификаторы не меняют цвет — только размер. */
 
 .btn {
     display: inline-block;
     padding: 14px 26px;
     border: 0;
     border-radius: var(--radius-pill);
+    background: var(--yellow);
+    color: var(--ink);
     font-family: inherit;
     font-size: 15px;
     font-weight: 600;
     text-align: center;
     cursor: pointer;
-    transition: background var(--fast), color var(--fast), transform var(--fast);
+    transition: background var(--fast), transform var(--fast);
 }
 
-.btn--primary {
-    width: 100%;
-    color: var(--ink);
-    background: var(--yellow);
-}
-
-.btn--primary:hover {
+.btn:hover {
     background: var(--paper);
 }
 
-.btn--filter {
-    padding: 12px 20px;
-    color: var(--ink);
-    background: var(--paper);
-    border-radius: var(--radius-field);
-}
-
-.btn--filter:hover {
-    background: var(--yellow);
+.btn:active {
+    transform: scale(0.98);
 }
 
 /* --- нижняя навигационная панель ----------------------------------------- */
@@ -241,4 +232,16 @@ a {
         bottom: 20px;
         border-radius: 0 0 28px 28px;
     }
+}
+
+/* --- шапка: пользователь ------------------------------------------------- */
+
+.topbar__user {
+    flex: 0 1 auto;
+    overflow: hidden;
+    color: var(--sand);
+    font-size: 12px;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

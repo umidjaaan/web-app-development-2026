@@ -2,95 +2,97 @@
 <html lang="ru">
 <head>
     {{template "head" .}}
-    <title>Добавление категории — Амфора</title>
+    <title>Добавление — Амфора</title>
     <link rel="stylesheet" href="/resources/styles/import_category_add.css">
 </head>
 <body class="page page--add">
 
-<header class="topbar">
-    <span class="brand">Амфора</span>
-    <span class="topbar__site">{{.Site}}</span>
-</header>
+{{template "topbar" .}}
 
 <main class="add">
-    <h1 class="add__title">Новая категория импорта</h1>
-    <p class="add__lead">
-        Форма заполняется вручную: изображение и видео уходят в Minio,
-        остальные поля — в коллекцию import_categories.
-    </p>
+{{if .Draft}}
+    <!-- ШАГ 2: черновик. Фото и видео сверху (уже выбраны на шаге 1),
+         ниже поля по теме и кнопка «Опубликовать» -->
+    <h1 class="add__title">Публикация черновика</h1>
 
-    <form class="form" action="/import_categories/add" method="get">
+    <div class="media">
+        <figure class="media__item">
+            <img class="media__preview" alt="Фото"
+                 src="{{if .Draft.ImageURL}}{{.Draft.ImageURL}}{{else}}/resources/img/default.jpg{{end}}">
+            <figcaption class="media__caption">Фото</figcaption>
+        </figure>
+        <figure class="media__item">
+            <video class="media__preview" muted loop autoplay playsinline
+                   poster="{{if .Draft.ImageURL}}{{.Draft.ImageURL}}{{else}}/resources/img/default.jpg{{end}}"
+                   src="{{if .Draft.VideoURL}}{{.Draft.VideoURL}}{{else}}/resources/video/default.mp4{{end}}"></video>
+            <figcaption class="media__caption">Видео</figcaption>
+        </figure>
+    </div>
 
-        <fieldset class="form__block">
-            <legend class="form__legend">Изображение</legend>
-            <input class="form__file" type="file" name="image" accept="image/*">
-            <p class="form__hint">JPEG, вертикальный кадр 9:16 — объект бакета в Minio.</p>
-        </fieldset>
+    <form class="form" action="/import_categories/{{.Draft.ID}}/publish" method="post">
+        <p class="form__name">{{.Draft.Title}}</p>
 
-        <fieldset class="form__block">
-            <legend class="form__legend">Видео</legend>
-            <input class="form__file" type="file" name="video" accept="video/*">
-            <p class="form__hint">MP4 без звука, зацикленное — объект бакета в Minio.</p>
-        </fieldset>
+        <label class="form__label" for="center">Центр производства</label>
+        <input class="form__input" type="text" id="center" name="center" value="{{.Draft.ProductionCenter}}">
 
-        <fieldset class="form__block">
-            <legend class="form__legend">Описание</legend>
+        <label class="form__label" for="region">Регион-поставщик</label>
+        <select class="form__input form__select" id="region" name="region">
+            {{range .Regions}}
+                <option value="{{.}}"{{if eq . $.Draft.Region}} selected{{end}}>{{.}}</option>
+            {{end}}
+        </select>
 
-            <label class="form__label" for="title">Название категории</label>
-            <input class="form__input" type="text" id="title" name="title"
-                   placeholder="Например: Книдские амфоры">
+        <label class="form__label" for="shape">Морфологический тип</label>
+        <input class="form__input" type="text" id="shape" name="shape" value="{{.Draft.Shape}}">
 
-            <label class="form__label" for="center">Центр производства</label>
-            <input class="form__input" type="text" id="center" name="center"
-                   placeholder="Город, область">
+        <label class="form__label" for="date_start">Дата начала</label>
+        <input class="form__input" type="date" id="date_start" name="date_start" required
+               min="0001-01-01" max="9999-12-31"
+               value="{{if gt .Draft.DateStart.Year 1}}{{.Draft.DateStartInput}}{{end}}">
 
-            <label class="form__label" for="diagnostics">Признаки-маркёры</label>
-            <textarea class="form__textarea" id="diagnostics" name="diagnostics" rows="4"
-                      placeholder="По каким признакам категория опознаётся во фрагменте"></textarea>
+        <label class="form__label" for="date_end">Дата конца</label>
+        <input class="form__input" type="date" id="date_end" name="date_end" required
+               min="0001-01-01" max="9999-12-31"
+               value="{{if gt .Draft.DateEnd.Year 1}}{{.Draft.DateEndInput}}{{end}}">
 
-            <label class="form__label" for="description">Справка</label>
-            <textarea class="form__textarea" id="description" name="description" rows="4"
-                      placeholder="Значение категории для реконструкции связей"></textarea>
-        </fieldset>
+        <label class="form__label" for="finds">Число находок</label>
+        <input class="form__input" type="number" id="finds" name="finds" min="0" step="1"
+               value="{{.Draft.FindsCount}}">
 
-        <fieldset class="form__block">
-            <legend class="form__legend">Параметры сводки</legend>
+        <label class="form__label" for="diagnostics">Признаки-маркёры</label>
+        <textarea class="form__input form__textarea" id="diagnostics" name="diagnostics" rows="3">{{.Draft.Diagnostics}}</textarea>
 
-            <label class="form__label" for="region">Регион-поставщик</label>
-            <select class="form__input form__select" id="region" name="region">
-                {{range .Regions}}
-                    <option value="{{.}}">{{.}}</option>
-                {{end}}
-            </select>
+        <label class="form__label" for="description">Описание</label>
+        <textarea class="form__input form__textarea" id="description" name="description" rows="4">{{.Draft.Description}}</textarea>
 
-            <label class="form__label" for="shape">Морфологический тип</label>
-            <input class="form__input" type="text" id="shape" name="shape"
-                   placeholder="Амфора, килик, чаша">
-
-            <label class="form__label" for="date_start">Дата начала бытования типа</label>
-            <input class="form__input" type="date" id="date_start" name="date_start"
-                   min="0001-01-01" max="9999-12-31">
-
-            <label class="form__label" for="date_end">Дата конца бытования типа</label>
-            <input class="form__input" type="date" id="date_end" name="date_end"
-                   min="0001-01-01" max="9999-12-31">
-
-            <p class="form__hint">
-                Год в календаре — это год до нашей эры: 0250-01-01 читается
-                как 250 г. до н. э.
-            </p>
-
-            <label class="form__label" for="finds">Число фрагментов на памятнике</label>
-            <input class="form__input" type="number" min="0" step="1" id="finds" name="finds"
-                   placeholder="0">
-        </fieldset>
-
-        <button class="btn btn--primary" type="submit">Сохранить категорию</button>
-        <p class="form__note">
-            На этом этапе форма ничего не сохраняет: запись в базу
-            появится в лабораторной работе №3.
-        </p>
+        <!-- кнопка №2: статус «черновик» → «опубликована» (ORM) -->
+        <button class="btn" type="submit">Опубликовать</button>
     </form>
+{{else}}
+    <!-- ШАГ 1: фото и видео друг под другом с выбором из проводника,
+         название и кнопка «Далее» — создаёт черновик -->
+    <h1 class="add__title">Новая категория</h1>
+
+    <!-- enctype multipart/form-data нужен, чтобы отправить файлы -->
+    <form class="form" action="/import_categories" method="post" enctype="multipart/form-data">
+        <div class="media">
+            <label class="media__item media__item--pick">
+                <span class="media__caption">Фото</span>
+                <input class="form__file" type="file" name="image" accept="image/jpeg,image/png,image/webp">
+            </label>
+            <label class="media__item media__item--pick">
+                <span class="media__caption">Видео</span>
+                <input class="form__file" type="file" name="video" accept="video/mp4,video/webm">
+            </label>
+        </div>
+
+        <label class="form__label" for="title">Название</label>
+        <input class="form__input" type="text" id="title" name="title" required>
+
+        <!-- кнопка №1: создание черновика (ORM) -->
+        <button class="btn" type="submit">Далее</button>
+    </form>
+{{end}}
 </main>
 
 {{template "nav" .}}

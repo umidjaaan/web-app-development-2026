@@ -3,6 +3,8 @@
 //
 // Основная сущность предметной области — import_categories: характерные
 // категории импортных товаров с указанием центра производства.
+// Структуры этого пакета одновременно являются моделями GORM: по ним
+// создаются таблицы в PostgreSQL (см. cmd/migrate).
 package ds
 
 import (
@@ -12,20 +14,24 @@ import (
 
 // Status — состояние категории импорта.
 //
-// Статусов два: «действует» и «удалена» (мягкое удаление). Черновик
-// относится не к услуге, а к заявке и появится в ЛР3.
+//	draft     — черновик: создан кнопкой «Далее» на странице добавления;
+//	published — опубликована кнопкой «Опубликовать», видна всем;
+//	deleted   — логически удалена (SQL UPDATE через курсор).
 type Status string
 
 const (
-	StatusActive  Status = "active"  // действует — видна в ленте и в плитке
-	StatusDeleted Status = "deleted" // удалена — не отображается нигде
+	StatusDraft     Status = "draft"
+	StatusPublished Status = "published"
+	StatusDeleted   Status = "deleted"
 )
 
 // Label — человекочитаемое название статуса для шаблонов.
 func (s Status) Label() string {
 	switch s {
-	case StatusActive:
-		return "Действует"
+	case StatusDraft:
+		return "Черновик"
+	case StatusPublished:
+		return "Опубликована"
 	case StatusDeleted:
 		return "Удалена"
 	}
@@ -43,39 +49,58 @@ func BCE(year int) time.Time {
 	return time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
 }
 
-// ImportCategory — одна запись коллекции import_categories: характерная
-// категория импортных товаров с указанием центра производства.
-//
-// Поля ImageURL и VideoURL хранят ссылки на объекты в Minio
-// (изображение и видео лежат в разных префиксах бакета).
+// DateLayout — формат даты HTML-поля <input type="date">.
+const DateLayout = "2006-01-02"
+
+// ImportCategory — услуга предметной области: характерная категория
+// импортных товаров с указанием центра производства.
+// Таблица в базе данных — import_categories.
 type ImportCategory struct {
-	ID   int
-	Slug string
+	ID   uint   `gorm:"primaryKey"`
+	Slug string `gorm:"size:64;uniqueIndex;not null"`
 
-	Title            string // «Аттическая чернофигурная керамика»
-	Shape            string // морфологический тип: килик, амфора, чаша…
-	ProductionCenter string // центр производства: «Афины, квартал Керамик»
-	Region           string // регион-поставщик — по нему считается удельный вес
+	Title            string `gorm:"size:128;not null"`      // «Аттическая чернофигурная керамика»
+	Shape            string `gorm:"size:64"`                // морфологический тип
+	ProductionCenter string `gorm:"size:128"`               // центр производства
+	Region           string `gorm:"size:64;not null;index"` // регион-поставщик
 
-	// DateStart и DateEnd — два поля предметной области: дата начала
-	// бытования типа и дата его конца. По DateStart работает фильтрация.
-	DateStart time.Time
-	DateEnd   time.Time
+	// Два поля предметной области: начало и конец бытования типа.
+	// По DateStart работает фильтрация.
+	DateStart time.Time `gorm:"type:date;not null;index"`
+	DateEnd   time.Time `gorm:"type:date;not null"`
 
-	Diagnostics string // признаки-маркёры, по которым категория опознаётся
-	Description string // развёрнутая справка
+	Diagnostics string `gorm:"type:text"` // признаки-маркёры
+	Description string `gorm:"type:text"` // развёрнутая справка
 
-	FindsCount int // число фрагментов в сводке по памятнику
+	FindsCount int `gorm:"not null;default:0"` // число фрагментов в сводке
 
-	ImageURL string // ключ изображения в Minio
-	VideoURL string // ключ видео в Minio
+	ImageURL string `gorm:"size:256"` // ключ изображения в Minio
+	VideoURL string `gorm:"size:256"` // ключ видео в Minio
 
-	LikedBy []int // ID пользователей, отметивших категорию
-	Status  Status
+	Status Status `gorm:"size:16;not null;default:draft;index"`
+
+	// Автор записи. Ограничение «не более одной неопубликованной категории
+	// на пользователя» реализовано частичным уникальным индексом
+	// (см. cmd/migrate/main.go).
+	CreatorID *uint `gorm:"index"`
+	Creator   *User `gorm:"foreignKey:CreatorID"`
+
+	Likes []Like `gorm:"foreignKey:ImportCategoryID"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+
+	// LikesTotal не хранится в таблице: репозиторий заполняет его
+	// отдельным запросом-подсчётом по таблице лайков.
+	LikesTotal int `gorm:"-"`
 }
 
-// Likes — количество лайков карточки.
-func (c ImportCategory) Likes() int { return len(c.LikedBy) }
+// TableName задаёт имя таблицы явно — оно должно совпадать с предметной
+// областью и с адресами приложения.
+func (ImportCategory) TableName() string { return "import_categories" }
+
+// LikesCount — количество лайков карточки (используется в шаблонах).
+func (c ImportCategory) LikesCount() int { return c.LikesTotal }
 
 // FindsLabel — подпись количества находок для карточки.
 func (c ImportCategory) FindsLabel() string {
@@ -93,43 +118,20 @@ func (c ImportCategory) PeriodLabel() string {
 	return fmt.Sprintf("%d–%d гг. до н. э.", c.DateStart.Year(), c.DateEnd.Year())
 }
 
-// PeriodShort — компактный интервал для карточки плитки: «620–480 до н. э.».
+// PeriodShort — компактный интервал для карточки плитки.
 func (c ImportCategory) PeriodShort() string {
 	return fmt.Sprintf("%d–%d до н. э.", c.DateStart.Year(), c.DateEnd.Year())
 }
 
-// DateStartInput — значение даты начала для <input type="date">: «0620-01-01».
+// DateStartInput — значение даты начала для <input type="date">.
 func (c ImportCategory) DateStartInput() string { return c.DateStart.Format(DateLayout) }
 
 // DateEndInput — значение даты конца для <input type="date">.
 func (c ImportCategory) DateEndInput() string { return c.DateEnd.Format(DateLayout) }
 
-// DateLayout — формат даты HTML-поля <input type="date">.
-const DateLayout = "2006-01-02"
+// IsPublished — опубликована ли категория (для шаблонов).
+func (c ImportCategory) IsPublished() bool { return c.Status == StatusPublished }
 
 func bceLabel(t time.Time) string {
 	return fmt.Sprintf("%d г. до н. э.", t.Year())
-}
-
-// RegionShare — удельный вес региона в общей массе импортных находок.
-// Это исходные данные для «заявки» — реконструкции торговых путей.
-type RegionShare struct {
-	Region     string
-	Finds      int
-	Categories int
-	Percent    float64
-}
-
-// PercentLabel — доля региона с одним знаком после запятой.
-func (r RegionShare) PercentLabel() string {
-	return fmt.Sprintf("%.1f%%", r.Percent)
-}
-
-// BarWidth — ширина полосы диаграммы в процентах ширины контейнера.
-// Нормируется по максимальной доле, чтобы полосы читались на узком экране.
-func (r RegionShare) BarWidth(max float64) string {
-	if max <= 0 {
-		return "0%"
-	}
-	return fmt.Sprintf("%.1f%%", r.Percent/max*100.0)
 }

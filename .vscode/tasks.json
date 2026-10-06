@@ -9,13 +9,19 @@
             "group": "build"
         },
         {
-            "label": "2. Поднять Minio и залить медиа",
+            "label": "2. Поднять PostgreSQL, Adminer и Minio",
             "type": "shell",
             "command": "docker compose -f deployments/docker-compose.yml up -d",
             "problemMatcher": []
         },
         {
-            "label": "3. Запустить приложение",
+            "label": "3. Создать таблицы и наполнить их",
+            "type": "shell",
+            "command": "go run ./cmd/migrate",
+            "problemMatcher": []
+        },
+        {
+            "label": "4. Запустить приложение",
             "type": "shell",
             "command": "go run ./cmd/main",
             "problemMatcher": [],
@@ -23,6 +29,12 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "Пересоздать таблицы с нуля",
+            "type": "shell",
+            "command": "go run ./cmd/migrate -drop",
+            "problemMatcher": []
         },
         {
             "label": "Запустить без Minio",
@@ -36,7 +48,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Остановить Minio",
+            "label": "Остановить инфраструктуру",
             "type": "shell",
             "command": "docker compose -f deployments/docker-compose.yml down",
             "problemMatcher": []

@@ -6,6 +6,15 @@
 <link rel="stylesheet" href="/resources/styles/app.css">
 {{end}}
 
+{{define "topbar"}}
+<header class="topbar">
+    <span class="brand">Амфора</span>
+    <span class="topbar__user">
+        {{if .CurrentUser}}{{.CurrentUser.FullName}} · {{end}}&#9825; {{.MyLikes}}
+    </span>
+</header>
+{{end}}
+
 {{define "nav"}}
 <nav class="tabbar">
     <a class="tabbar__item{{if eq .Tab "feed"}} tabbar__item--active{{end}}" href="/import_categories/feed">

@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Вкладка «Плитка»: двухколончатый список карточек, серверный фильтр
-   по дате начала (календарь с кнопкой), диаграмма удельного веса регионов.
+   Вкладка «Плитка»: фильтр по дате начала (календарь с кнопкой)
+   и двухколончатая сетка карточек с удалением и лайками.
    ========================================================================== */
 
 .catalog {
@@ -12,81 +12,6 @@
     font-size: 26px;
     font-weight: 700;
     line-height: 1.1;
-}
-
-.catalog__lead {
-    margin: 0 0 20px;
-    font-size: 13px;
-    line-height: 1.45;
-    color: var(--sand);
-}
-
-/* --- удельный вес регионов ----------------------------------------------- */
-
-.shares {
-    padding: 16px 14px 8px;
-    margin-bottom: 18px;
-    border-radius: var(--radius-card);
-    background: var(--paper);
-    color: var(--ink);
-}
-
-.shares__title {
-    margin: 0 0 14px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-}
-
-.shares__row {
-    margin-bottom: 12px;
-}
-
-.shares__head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 5px;
-}
-
-.shares__region {
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.shares__value {
-    font-size: 14px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-}
-
-.shares__track {
-    height: 8px;
-    border-radius: var(--radius-pill);
-    background: rgba(26, 26, 26, 0.1);
-    overflow: hidden;
-}
-
-.shares__bar {
-    height: 100%;
-    border-radius: var(--radius-pill);
-    background: var(--ink);
-    transition: width var(--fast);
-}
-
-/* регион-лидер выделяется жёлтым акцентом Arzamas */
-.shares__row:first-of-type .shares__bar {
-    background: var(--yellow);
-}
-
-.shares__meta {
-    display: block;
-    margin-top: 4px;
-    font-size: 11px;
-    color: var(--muted);
 }
 
 /* --- фильтр -------------------------------------------------------------- */
@@ -229,30 +154,63 @@
     color: var(--muted);
 }
 
+.card__link {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    color: inherit;
+}
+
+.card__period {
+    margin: 0;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+/* низ карточки: иконка удаления слева, лайки справа */
 .card__foot {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: auto;
-    padding-top: 8px;
+    padding: 8px 12px 10px;
     border-top: 1px solid rgba(26, 26, 26, 0.12);
     font-size: 12px;
     font-variant-numeric: tabular-nums;
 }
 
+.card__foot form {
+    margin: 0;
+}
+
+.card__delete {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background var(--fast), color var(--fast);
+}
+
+.card__delete:hover {
+    background: rgba(26, 26, 26, 0.08);
+    color: var(--ink);
+}
+
+.card__delete svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 .card__likes {
     font-weight: 600;
-}
-
-.card__period {
-    color: var(--muted);
-    font-size: 11px;
-    white-space: nowrap;
-}
-
-.catalog__note {
-    margin: 20px 0 0;
-    font-size: 11px;
-    line-height: 1.4;
-    color: rgba(184, 184, 168, 0.7);
 }

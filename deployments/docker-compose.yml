@@ -1,12 +1,45 @@
-# Хранилище медиа для приложения «Амфора».
-# Поднимается из корня проекта:
+# Инфраструктура приложения «Амфора»: база данных, панель администратора
+# и хранилище медиа. Поднимается из корня проекта:
+#
 #   docker compose -f deployments/docker-compose.yml up -d
 #
-# S3 API      : http://localhost:9000
+# PostgreSQL  : localhost:5433  (rip / rip, база amphora)
+# Adminer     : http://localhost:8081
+# S3 API Minio: http://localhost:9000
 # Веб-консоль : http://localhost:9001  (minioadmin / minioadmin)
 # Бакет       : import-categories  (публичный на чтение)
 
 services:
+  postgres:
+    image: postgres:16
+    container_name: rip-postgres
+    environment:
+      POSTGRES_USER: rip
+      POSTGRES_PASSWORD: rip
+      POSTGRES_DB: amphora
+    ports:
+      # 5433 снаружи, чтобы не конфликтовать с другими проектами на 5432
+      - "5433:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rip -d amphora"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  adminer:
+    image: adminer:4
+    container_name: rip-adminer
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      # 8081, потому что 8080 занято самим приложением
+      - "8081:8080"
+
   minio:
     image: minio/minio:RELEASE.2024-09-13T20-26-02Z
     container_name: rip-minio
@@ -46,4 +79,5 @@ services:
       "
 
 volumes:
+  pg-data:
   minio-data:
