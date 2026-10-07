@@ -21,14 +21,14 @@
 | Поле | Тип | Ограничения | Когда заполняется |
 |---|---|---|---|
 | id | bigint | PK | — |
-| title | varchar(128) | NOT NULL | кнопка «Далее» |
-| image_url | varchar(256) | NULL | кнопка «Далее» |
-| video_url | varchar(256) | NULL | кнопка «Далее» |
-| date_start | date | NULL, INDEX | перед публикацией |
-| date_end | date | NULL | перед публикацией |
-| description | text | NULL | перед публикацией |
+| title | varchar(128) | NOT NULL | создание (POST) |
+| image | varchar(256) | NULL | POST: сервер пишет имя загруженного файла |
+| video | varchar(256) | NULL | POST: сервер пишет имя загруженного файла |
+| date_start | date | NULL, INDEX | публикация (PUT) |
+| date_end | date | NULL | публикация (PUT) |
+| description | text | NULL | публикация (PUT) |
 | status | varchar(16) | NOT NULL, DEFAULT 'draft' | draft → published → deleted |
-| creator_id | bigint | NOT NULL, FK → users.id | кнопка «Далее» |
+| creator_id | bigint | NOT NULL, FK → users.id | на сервере (singleton) |
 
 Поля по теме — только два: **date_start** и **date_end** (дата начала и дата конца
 бытования типа). Фильтрация в плитке — по date_start.

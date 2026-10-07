@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="804" height="478" viewBox="0 0 804 478" font-family="Helvetica, Arial, sans-serif">
-<rect width="804" height="478" fill="#fff"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="804" height="428" viewBox="0 0 804 428" font-family="Helvetica, Arial, sans-serif">
+<rect width="804" height="428" fill="#fff"/>
 <rect x="20" y="20" width="284" height="134" fill="#fff" stroke="#6c8ebf"/>
 <line x1="20" y1="76" x2="304" y2="76" stroke="#6c8ebf"/>
 <text x="37.0" y="67" text-anchor="middle" font-size="11" font-weight="bold">PK</text>
@@ -21,18 +21,15 @@
 <text x="517.0" y="67" text-anchor="middle" font-size="11" font-weight="bold">PK</text>
 <text x="538" y="67" font-size="12" font-weight="bold" text-decoration="underline">id</text>
 <text x="656" y="67" font-size="11" fill="#555">bigint</text>
-<rect x="500.5" y="76" width="283" height="26" fill="#fff2cc"/>
 <text x="517.0" y="93" text-anchor="middle" font-size="11" font-weight="bold"></text>
 <text x="538" y="93" font-size="12">title</text>
 <text x="656" y="93" font-size="11" fill="#555">varchar(128)</text>
-<rect x="500.5" y="102" width="283" height="26" fill="#fff2cc"/>
 <text x="517.0" y="119" text-anchor="middle" font-size="11" font-weight="bold"></text>
-<text x="538" y="119" font-size="12">image_url</text>
+<text x="538" y="119" font-size="12">image</text>
 <text x="656" y="119" font-size="11" fill="#555">varchar(256)</text>
 <text x="778" y="119" text-anchor="end" font-size="10" font-style="italic" fill="#888">NULL</text>
-<rect x="500.5" y="128" width="283" height="26" fill="#fff2cc"/>
 <text x="517.0" y="145" text-anchor="middle" font-size="11" font-weight="bold"></text>
-<text x="538" y="145" font-size="12">video_url</text>
+<text x="538" y="145" font-size="12">video</text>
 <text x="656" y="145" font-size="11" fill="#555">varchar(256)</text>
 <text x="778" y="145" text-anchor="end" font-size="10" font-style="italic" fill="#888">NULL</text>
 <text x="517.0" y="171" text-anchor="middle" font-size="11" font-weight="bold"></text>
@@ -89,7 +86,4 @@
 <line x1="546" y1="388.0" x2="556" y2="395.0" stroke="#000" stroke-width="1" fill="none"/>
 <line x1="546" y1="395.0" x2="556" y2="395.0" stroke="#000" stroke-width="1" fill="none"/>
 <circle cx="561" cy="395.0" r="5" fill="#fff" stroke="#000"/>
-<rect x="20" y="427" width="22" height="14" fill="#fff2cc" stroke="#d6b656"/>
-<text x="50" y="438" font-size="12">заполняется по кнопке «Далее» (title обязательно)</text>
-<text x="20" y="460" font-size="12"><tspan font-style="italic" fill="#888">NULL</tspan> — необязательное поле; остальные поля NOT NULL</text>
 </svg>

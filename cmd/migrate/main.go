@@ -46,17 +46,13 @@ func main() {
 		log.Fatalf("миграция: %v", err)
 	}
 
-	// Переход со статуса «unpublished» (первая версия ЛР2) на «draft».
-	db.Exec("DROP INDEX IF EXISTS uniq_unpublished_per_user")
-	db.Exec("UPDATE import_categories SET status = 'draft' WHERE status = 'unpublished'")
-
 	log.Println("Добавляю частичный уникальный индекс: один черновик на пользователя")
 	if err := db.Exec(uniqueDraftIndex).Error; err != nil {
 		log.Fatalf("создание индекса: %v", err)
 	}
 
 	log.Println("Наполняю таблицы исходными данными")
-	repo := repository.New(db, cfg.MediaBaseURL)
+	repo := repository.New(db, nil, cfg.MinioBucket, cfg.MediaBaseURL)
 	if err := repo.Seed(); err != nil {
 		log.Fatalf("наполнение таблиц: %v", err)
 	}

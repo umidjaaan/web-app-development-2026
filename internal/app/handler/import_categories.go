@@ -1,306 +1,295 @@
-// Package handler — слой контроллеров (View в терминах MVT).
-// Каждый обработчик получает данные из репозитория и передаёт их
-// в шаблон через gin.H.
-//
-// Шесть методов: три GET и два POST через ORM (кнопки «Далее»
-// и «Опубликовать» — два статуса: черновик и опубликована) и один POST
-// логического удаления — SQL UPDATE через курсор.
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 
+	"rip/lab1/internal/app/auth"
 	"rip/lab1/internal/app/ds"
 	"rip/lab1/internal/app/repository"
+	"rip/lab1/internal/app/serializer"
 )
 
-// Handler связывает маршруты приложения с репозиторием.
-type Handler struct {
-	Repository *repository.Repository
-	Logger     *logrus.Logger
-	// CurrentUserID — пользователь, от имени которого работает приложение.
-	// Авторизация появится в ЛР4.
-	CurrentUserID uint
-}
+// systemFields — поля, которые вычисляются на бэкенде: с клиента их не принимаем.
+var systemFields = []string{"id", "status", "creator_id", "is_moderator"}
 
-// New создаёт обработчик.
-func New(repo *repository.Repository, logger *logrus.Logger, currentUserID uint) *Handler {
-	return &Handler{Repository: repo, Logger: logger, CurrentUserID: currentUserID}
-}
+// maxCreateBody — предел тела запроса на создание: видео 50 МБ + фото 10 МБ + поля.
+const maxCreateBody = 61 << 20
 
-// RegisterHandler описывает маршруты приложения.
-func (h *Handler) RegisterHandler(router *gin.Engine) {
-	router.GET("/", h.Index)
-	router.GET("/import_categories/feed", h.Index)
-
-	// GET №1 — плитка: опубликованные категории, фильтр по дате начала.
-	router.GET("/import_categories", h.ImportCategoryList)
-	// GET №2 — лента: одна категория по идентификатору.
-	router.GET("/import_categories/feed/:id", h.ImportCategoryFeed)
-	// GET №3 — добавление: шаг 1 (фото, видео, название) или черновик.
-	router.GET("/import_categories/add", h.ImportCategoryAdd)
-
-	// POST №1 — кнопка «Далее»: создание черновика (ORM).
-	router.POST("/import_categories", h.ImportCategoryCreate)
-	// POST №2 — кнопка «Опубликовать»: черновик → опубликована (ORM).
-	router.POST("/import_categories/:id/publish", h.ImportCategoryPublish)
-	// POST №3 — удаление из плитки: SQL UPDATE через курсор.
-	router.POST("/import_categories/:id/delete", h.ImportCategoryDelete)
-}
-
-// Index перенаправляет на первую категорию ленты.
-func (h *Handler) Index(c *gin.Context) {
-	id := h.Repository.FirstImportCategoryID()
-	c.Redirect(http.StatusFound, "/import_categories/feed/"+strconv.FormatUint(uint64(id), 10))
-}
-
-// ==========================================================================
-// GET №1 — плитка с фильтром по дате начала
-// ==========================================================================
-
-func (h *Handler) ImportCategoryList(c *gin.Context) {
-	raw := c.Query("date_start")
-
+// GetImportCategories — GET /api/import_categories?date_start=0500-01-01
+// Список опубликованных услуг с фильтром по дате начала.
+// is_creator = 1, если создатель услуги — текущий пользователь.
+func (h *Handler) GetImportCategories(c *gin.Context) {
 	var dateStart time.Time
-	if raw != "" {
+	if raw := c.Query("date_start"); raw != "" {
 		parsed, err := time.Parse(ds.DateLayout, raw)
 		if err != nil {
-			h.Logger.Warnf("некорректная дата фильтра: %q", raw)
-			raw = ""
-		} else {
-			dateStart = parsed
+			h.fail(c, http.StatusBadRequest, errors.New("date_start: дата в формате ГГГГ-ММ-ДД"))
+			return
 		}
+		dateStart = parsed
 	}
 
 	items, err := h.Repository.ImportCategories(dateStart)
 	if err != nil {
-		h.renderError(c, http.StatusInternalServerError, "Не удалось получить список категорий")
+		h.failRepo(c, err)
 		return
 	}
 
-	h.Logger.Infof("GET /import_categories?date_start=%s — найдено %d", raw, len(items))
-
-	c.HTML(http.StatusOK, "import_categories.html", h.page(gin.H{
-		"Tab":              "catalog",
-		"ImportCategories": items,
-		"DateStart":        raw,
-		"HasFilter":        raw != "",
-		"Found":            len(items),
-	}))
+	userID := auth.CurrentUserID()
+	result := make([]serializer.ImportCategorySerializer, 0, len(items))
+	for _, item := range items {
+		result = append(result, serializer.ToImportCategory(item, userID, h.Repository))
+	}
+	h.success(c, http.StatusOK, result, "")
 }
 
-// ==========================================================================
-// GET №2 — лента: одна категория по идентификатору
-// ==========================================================================
-
-func (h *Handler) ImportCategoryFeed(c *gin.Context) {
-	id, err := parseID(c)
+// GetFeed — лента опубликованных услуг, по одной:
+//
+//	GET /api/import_categories/feed                 — первая услуга ленты
+//	GET /api/import_categories/feed?id=3            — услуга с ид 3
+//	GET /api/import_categories/feed?id=3&next=true  — следующая после неё
+//
+// is_liked = 1, если текущий пользователь лайкнул услугу.
+func (h *Handler) GetFeed(c *gin.Context) {
+	ids, err := h.Repository.FeedIDs()
 	if err != nil {
-		h.renderError(c, http.StatusNotFound, "Некорректный идентификатор категории импорта")
+		h.failRepo(c, err)
+		return
+	}
+	if len(ids) == 0 {
+		h.fail(c, http.StatusNotFound, errors.New("опубликованных услуг нет"))
 		return
 	}
 
-	item, err := h.Repository.ImportCategoryByID(id)
+	pos := 0 // позиция в ленте
+	if raw := c.Query("id"); raw != "" {
+		id, err := parseID(raw)
+		if err != nil {
+			h.fail(c, http.StatusBadRequest, err)
+			return
+		}
+		pos = indexOf(ids, id)
+		if pos < 0 {
+			h.fail(c, http.StatusNotFound, fmt.Errorf("услуги %d нет в ленте", id))
+			return
+		}
+		if c.Query("next") == "true" {
+			pos = (pos + 1) % len(ids) // после последней — снова первая
+		}
+	}
+
+	item, err := h.Repository.PublishedByID(ids[pos])
 	if err != nil {
-		h.Logger.Warnf("категория импорта %d не найдена или удалена", id)
-		h.renderError(c, http.StatusNotFound, "Категория импорта не найдена или удалена")
+		h.failRepo(c, err)
+		return
+	}
+	isLiked, err := h.Repository.IsLiked(auth.CurrentUserID(), item.ID)
+	if err != nil {
+		h.failRepo(c, err)
 		return
 	}
 
-	position, total := h.Repository.Position(id)
-	h.Logger.Infof("GET /import_categories/feed/%d — %s", id, item.Title)
-
-	c.HTML(http.StatusOK, "import_category.html", h.page(gin.H{
-		"Tab":            "feed",
-		"ImportCategory": item,
-		"Position":       position,
-		"Total":          total,
-		"NextID":         h.Repository.NextImportCategoryID(id),
-	}))
+	next := ids[(pos+1)%len(ids)]
+	h.success(c, http.StatusOK, serializer.ToFeed(item, isLiked, pos+1, len(ids), next, h.Repository), "")
 }
 
-// ==========================================================================
-// GET №3 — добавление: шаг 1 или черновик (шаг 2)
-// ==========================================================================
+// GetDraft — GET /api/import_categories/draft
+// Черновик текущего пользователя; ид не указывается, черновик один.
+func (h *Handler) GetDraft(c *gin.Context) {
+	draft, err := h.Repository.DraftByUser(auth.CurrentUserID())
+	if err != nil {
+		h.failRepo(c, err)
+		return
+	}
+	h.success(c, http.StatusOK, serializer.ToDraft(draft, h.Repository), "")
+}
 
-func (h *Handler) ImportCategoryAdd(c *gin.Context) {
-	data := gin.H{"Tab": "add"}
-
-	// Если у пользователя уже есть черновик — показываем шаг 2:
-	// фото и видео сверху, остальные поля и кнопка «Опубликовать».
-	if draft, err := h.Repository.DraftByUser(h.CurrentUserID); err == nil {
-		data["Draft"] = draft
-		h.Logger.Infof("GET /import_categories/add — черновик №%d", draft.ID)
-	} else {
-		h.Logger.Info("GET /import_categories/add — шаг 1")
+// CreateImportCategory — POST /api/import_categories (multipart/form-data)
+//
+//	title — название (обязательно);
+//	image — файл изображения, video — файл короткого видео (необязательно).
+//
+// Создаёт черновик текущего пользователя. Файлы уходят в MinIO под именами
+// на латинице, в поля image и video таблицы пишутся эти имена.
+func (h *Handler) CreateImportCategory(c *gin.Context) {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxCreateBody)
+	if err := c.Request.ParseMultipartForm(8 << 20); err != nil {
+		h.fail(c, http.StatusBadRequest, errors.New("ожидается multipart/form-data: title, image, video (не больше 60 МБ)"))
+		return
+	}
+	for _, field := range systemFields {
+		if _, ok := c.Request.MultipartForm.Value[field]; ok {
+			h.fail(c, http.StatusBadRequest, fmt.Errorf("поле %s задаётся на сервере, передавать его нельзя", field))
+			return
+		}
+	}
+	for _, field := range []string{"image", "video"} {
+		if _, ok := c.Request.MultipartForm.Value[field]; ok {
+			h.fail(c, http.StatusBadRequest, fmt.Errorf("поле %s передаётся файлом, а не текстом: имя файла генерирует сервер", field))
+			return
+		}
 	}
 
-	c.HTML(http.StatusOK, "import_category_add.html", h.page(data))
-}
-
-// ==========================================================================
-// POST №1 — кнопка «Далее»: черновик (ORM)
-// ==========================================================================
-
-func (h *Handler) ImportCategoryCreate(c *gin.Context) {
 	title := strings.TrimSpace(c.PostForm("title"))
 	if title == "" {
-		h.renderError(c, http.StatusBadRequest, "Название категории обязательно")
+		h.fail(c, http.StatusBadRequest, errors.New("поле title обязательно"))
 		return
 	}
 
-	// По кнопке «Далее» заполняются только название, фото и видео.
-	item := ds.ImportCategory{
-		Title:     title,
-		CreatorID: h.CurrentUserID,
-	}
-
-	// Фото и видео, выбранные в проводнике. Если файл не выбран,
-	// ссылка остаётся пустой и в HTML подставится заглушка.
-	var err error
-	if item.ImageURL, err = saveUpload(c, "image", imageExts); err != nil {
-		h.renderError(c, http.StatusBadRequest, err.Error())
+	// Черновик уже есть — новый не создаём и файлы не загружаем.
+	userID := auth.CurrentUserID()
+	exists, err := h.Repository.HasDraft(userID)
+	if err != nil {
+		h.failRepo(c, err)
 		return
 	}
-	if item.VideoURL, err = saveUpload(c, "video", videoExts); err != nil {
-		h.renderError(c, http.StatusBadRequest, err.Error())
+	if exists {
+		h.failRepo(c, repository.ErrDraftExists)
+		return
+	}
+
+	item := ds.ImportCategory{Title: title, CreatorID: userID}
+	if item.Image, err = h.upload(c, "image", repository.Image, title); err != nil {
+		h.failRepo(c, err)
+		return
+	}
+	if item.Video, err = h.upload(c, "video", repository.Video, title); err != nil {
+		h.Repository.RemoveFile(repository.Image, item.Image)
+		h.failRepo(c, err)
 		return
 	}
 
 	if err := h.Repository.CreateDraft(&item); err != nil {
-		h.Logger.Errorf("создание черновика: %v", err)
-		h.renderError(c, http.StatusInternalServerError,
-			"Не удалось создать черновик: у пользователя уже есть черновик")
+		// запись не создана — убираем уже загруженные файлы
+		h.Repository.RemoveFile(repository.Image, item.Image)
+		h.Repository.RemoveFile(repository.Video, item.Video)
+		h.failRepo(c, err)
 		return
 	}
 
-	h.Logger.Infof("POST /import_categories — создан черновик №%d", item.ID)
-	c.Redirect(http.StatusSeeOther, "/import_categories/add")
+	draft, err := h.Repository.DraftByUser(userID)
+	if err != nil {
+		h.failRepo(c, err)
+		return
+	}
+	h.Logger.Infof("создан черновик №%d «%s»", draft.ID, draft.Title)
+	h.success(c, http.StatusCreated, serializer.ToDraft(draft, h.Repository), "черновик создан")
 }
 
-// ==========================================================================
-// POST №2 — кнопка «Опубликовать»: черновик → опубликована (ORM)
-// ==========================================================================
-
-func (h *Handler) ImportCategoryPublish(c *gin.Context) {
-	id, err := parseID(c)
+// upload загружает файл из поля формы в MinIO и возвращает его имя.
+// Файл не выбран — не ошибка: поле останется NULL.
+func (h *Handler) upload(c *gin.Context, field string, kind repository.FileKind, title string) (*string, error) {
+	header, err := c.FormFile(field)
+	if errors.Is(err, http.ErrMissingFile) {
+		return nil, nil
+	}
 	if err != nil {
-		h.renderError(c, http.StatusNotFound, "Некорректный идентификатор категории импорта")
+		return nil, fmt.Errorf("%w: поле %s: %v", repository.ErrBadFile, field, err)
+	}
+	name, err := h.Repository.UploadFile(kind, title, header)
+	if err != nil {
+		return nil, err
+	}
+	return &name, nil
+}
+
+// PublishImportCategory — PUT /api/import_categories/:id/publish
+// Тело: {"date_start": "0250-01-01", "date_end": "0050-01-01", "description": "..."}
+// Черновик → опубликована. Только свой черновик; вернуть в черновик нельзя.
+func (h *Handler) PublishImportCategory(c *gin.Context) {
+	id, err := parseID(c.Param("id"))
+	if err != nil {
+		h.fail(c, http.StatusBadRequest, err)
 		return
 	}
 
-	dateStart, err1 := time.Parse(ds.DateLayout, c.PostForm("date_start"))
-	dateEnd, err2 := time.Parse(ds.DateLayout, c.PostForm("date_end"))
+	var req serializer.PublishRequest
+	if err := bindJSON(c, &req); err != nil {
+		h.fail(c, http.StatusBadRequest, err)
+		return
+	}
+	start, err1 := time.Parse(ds.DateLayout, req.DateStart)
+	end, err2 := time.Parse(ds.DateLayout, req.DateEnd)
 	if err1 != nil || err2 != nil {
-		h.renderError(c, http.StatusBadRequest, "Укажите дату начала и дату конца")
+		h.fail(c, http.StatusBadRequest, errors.New("date_start и date_end: даты в формате ГГГГ-ММ-ДД"))
 		return
 	}
-	// Перед публикацией заполняются два поля по теме и описание.
-	fields := map[string]any{
-		"date_start":  dateStart,
-		"date_end":    dateEnd,
-		"description": c.PostForm("description"),
-	}
-
-	if err := h.Repository.PublishDraft(id, h.CurrentUserID, fields); err != nil {
-		h.Logger.Warnf("публикация черновика %d: %v", id, err)
-		h.renderError(c, http.StatusNotFound, "Черновик не найден")
+	// Годы до н. э. хранятся положительным числом: начало бытования
+	// не может быть позже конца, то есть хранимая дата начала >= даты конца.
+	if start.Before(end) {
+		h.fail(c, http.StatusBadRequest, errors.New("дата начала должна быть раньше даты конца"))
 		return
 	}
 
-	h.Logger.Infof("POST /import_categories/%d/publish — опубликована", id)
-	c.Redirect(http.StatusSeeOther, "/import_categories/feed/"+strconv.FormatUint(uint64(id), 10))
-}
+	userID := auth.CurrentUserID()
+	description := ds.Optional(strings.TrimSpace(req.Description))
+	if err := h.Repository.PublishDraft(id, userID, start, end, description); err != nil {
+		h.failRepo(c, err)
+		return
+	}
 
-// ==========================================================================
-// POST №3 — удаление из плитки: SQL UPDATE через курсор
-// ==========================================================================
-
-func (h *Handler) ImportCategoryDelete(c *gin.Context) {
-	id, err := parseID(c)
+	item, err := h.Repository.PublishedByID(id)
 	if err != nil {
-		h.renderError(c, http.StatusNotFound, "Некорректный идентификатор категории импорта")
+		h.failRepo(c, err)
 		return
 	}
-
-	if err := h.Repository.DeleteImportCategory(id); err != nil {
-		h.Logger.Warnf("удаление категории %d: %v", id, err)
-		h.renderError(c, http.StatusNotFound, "Категория импорта не найдена")
-		return
-	}
-
-	h.Logger.Infof("POST /import_categories/%d/delete — логически удалена", id)
-	c.Redirect(http.StatusSeeOther, "/import_categories")
+	h.Logger.Infof("услуга №%d опубликована", id)
+	h.success(c, http.StatusOK, serializer.ToImportCategory(item, userID, h.Repository), "услуга опубликована")
 }
 
-// ==========================================================================
-// Вспомогательное
-// ==========================================================================
-
-// page добавляет к данным шаблона то, что нужно каждой странице:
-// памятник, текущего пользователя и число его отметок.
-func (h *Handler) page(data gin.H) gin.H {
-	data["Site"] = h.Repository.Site()
-
-	if user, err := h.Repository.UserByID(h.CurrentUserID); err == nil {
-		data["CurrentUser"] = user
-	}
-	if likes, err := h.Repository.LikesByUser(h.CurrentUserID); err == nil {
-		data["MyLikes"] = likes
-	}
-	return data
-}
-
-func (h *Handler) renderError(c *gin.Context, code int, message string) {
-	c.HTML(code, "error.html", h.page(gin.H{
-		"Tab":     "feed",
-		"Code":    code,
-		"Message": message,
-	}))
-}
-
-func parseID(c *gin.Context) (uint, error) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	return uint(id), err
-}
-
-// Допустимые расширения загружаемых файлов.
-var (
-	imageExts = map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true}
-	videoExts = map[string]bool{".mp4": true, ".webm": true}
-)
-
-// uploadDir — папка для загруженных файлов; отдаётся статикой по /media/uploads.
-const uploadDir = "media/uploads"
-
-// saveUpload сохраняет файл из поля формы field и возвращает ссылку на него.
-// Пустая строка без ошибки — файл не выбран.
-func saveUpload(c *gin.Context, field string, allowed map[string]bool) (string, error) {
-	file, err := c.FormFile(field)
+// DeleteImportCategory — DELETE /api/import_categories/:id
+// Мягкое удаление (status = deleted). Только услуги текущего пользователя.
+func (h *Handler) DeleteImportCategory(c *gin.Context) {
+	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return "", nil // поле пустое — файл не выбирали
+		h.fail(c, http.StatusBadRequest, err)
+		return
+	}
+	if err := h.Repository.DeleteImportCategory(id, auth.CurrentUserID()); err != nil {
+		h.failRepo(c, err)
+		return
+	}
+	h.Logger.Infof("услуга №%d удалена (soft delete)", id)
+	h.success(c, http.StatusOK, gin.H{"id": id, "status": ds.StatusDeleted}, "услуга удалена")
+}
+
+// LikeImportCategory — POST /api/import_categories/:id/like
+// Тело: {"like": 1} — поставить лайк, {"like": 0} — отменить.
+func (h *Handler) LikeImportCategory(c *gin.Context) {
+	id, err := parseID(c.Param("id"))
+	if err != nil {
+		h.fail(c, http.StatusBadRequest, err)
+		return
+	}
+	var req serializer.LikeRequest
+	if err := bindJSON(c, &req); err != nil {
+		h.fail(c, http.StatusBadRequest, err)
+		return
 	}
 
-	ext := strings.ToLower(filepath.Ext(file.Filename))
-	if !allowed[ext] {
-		return "", fmt.Errorf("недопустимый формат файла %q", file.Filename)
+	likes, err := h.Repository.SetLike(auth.CurrentUserID(), id, *req.Like == 1)
+	if err != nil {
+		h.failRepo(c, err)
+		return
 	}
+	message := "лайк поставлен"
+	if *req.Like == 0 {
+		message = "лайк отменён"
+	}
+	h.success(c, http.StatusOK, serializer.LikeSerializer{ImportCategoryID: id, IsLiked: *req.Like, Likes: likes}, message)
+}
 
-	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
-		return "", err
+func indexOf(ids []uint, id uint) int {
+	for i, v := range ids {
+		if v == id {
+			return i
+		}
 	}
-	name := strconv.FormatInt(time.Now().UnixNano(), 10) + ext
-	if err := c.SaveUploadedFile(file, filepath.Join(uploadDir, name)); err != nil {
-		return "", err
-	}
-	return "/media/uploads/" + name, nil
+	return -1
 }

@@ -1,5 +1,5 @@
-// Package api собирает приложение: конфигурация, подключение к базе данных,
-// репозиторий, обработчики, шаблоны и статика.
+// Package api собирает веб-сервис: конфигурация, подключение к PostgreSQL
+// и MinIO, репозиторий и маршруты REST API.
 package api
 
 import (
@@ -11,36 +11,37 @@ import (
 	"rip/lab1/internal/app/repository"
 )
 
-// StartServer поднимает веб-сервер приложения.
+// StartServer поднимает веб-сервис.
 func StartServer() {
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
 
 	cfg := config.Load()
-	logger.Infof("Медиа отдаются с %s", cfg.MediaBaseURL)
 
 	db, err := repository.Connect()
 	if err != nil {
-		logger.Fatalf("Не удалось подключиться к базе данных: %v", err)
+		logger.Fatalf("Не удалось подключиться к PostgreSQL: %v", err)
 	}
 	logger.Info("Подключение к PostgreSQL установлено")
 
-	repo := repository.New(db, cfg.MediaBaseURL)
-	h := handler.New(repo, logger, cfg.CurrentUserID)
+	minioClient, err := repository.ConnectMinio(cfg.MinioEndpoint, cfg.MinioAccessKey, cfg.MinioSecretKey)
+	if err != nil {
+		logger.Fatalf("Не удалось подключиться к MinIO: %v", err)
+	}
+	logger.Infof("MinIO: %s, бакет %s", cfg.MinioEndpoint, cfg.MinioBucket)
+
+	repo := repository.New(db, minioClient, cfg.MinioBucket, cfg.MediaBaseURL)
+	if err := repo.EnsureBucket(); err != nil {
+		// API для чтения работает и без MinIO; загрузка файлов — нет.
+		logger.Warnf("MinIO: %v — загрузка фото и видео работать не будет", err)
+	}
+	h := handler.New(repo, logger)
 
 	router := gin.Default()
-	router.LoadHTMLGlob("templates/*.html")
-
-	// Статика: стили и изображения интерфейса.
-	router.Static("/resources", "./resources")
-	// Резервная отдача медиа из локальной папки (когда Minio не поднят).
-	router.Static("/media", "./media")
-
 	h.RegisterHandler(router)
 
-	logger.Infof("Сервер запущен на %s", cfg.Addr)
+	logger.Infof("API запущен на %s, адреса начинаются с /api", cfg.Addr)
 	if err := router.Run(cfg.Addr); err != nil {
 		logger.Fatalf("Не удалось запустить сервер: %v", err)
 	}
-	logger.Info("Сервер остановлен")
 }

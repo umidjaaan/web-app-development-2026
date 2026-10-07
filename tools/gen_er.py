@@ -2,7 +2,7 @@
 #   docs/er.svg — картинка для отчёта (формат под ширину листа A4)
 #   docs/er.drawio — та же схема для редактирования в draw.io
 RH, HH = 26, 30
-HEAD, STROKE, NEXT = '#dae8fc', '#6c8ebf', '#fff2cc'
+HEAD, STROKE, NEXT = '#dae8fc', '#6c8ebf', '#ffffff'
 KW, NW, TW_, NUW = 34, 118, 92, 40
 
 # поля: (ключ, имя, тип, необязательное, заполняется по «Далее»)
@@ -15,8 +15,8 @@ T = {
     'import_categories': (500, 20, [
         ('PK', 'id', 'bigint', False, False),
         ('', 'title', 'varchar(128)', False, True),
-        ('', 'image_url', 'varchar(256)', True, True),
-        ('', 'video_url', 'varchar(256)', True, True),
+        ('', 'image', 'varchar(256)', True, True),
+        ('', 'video', 'varchar(256)', True, True),
         ('', 'date_start', 'date', True, False),
         ('', 'date_end', 'date', True, False),
         ('', 'description', 'text', True, False),
@@ -46,15 +46,13 @@ E = [
 ]
 
 # ---------------- SVG ----------------
-CW, CH = ix + W + 20, ly + H('likes') + 70
+CW, CH = ix + W + 20, ly + H('likes') + 20
 o = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{CW}" height="{CH}" viewBox="0 0 {CW} {CH}" font-family="Helvetica, Arial, sans-serif">',
      f'<rect width="{CW}" height="{CH}" fill="#fff"/>']
 for n, (x, y, rows) in T.items():
     o.append(f'<rect x="{x}" y="{y}" width="{W}" height="{H(n)}" fill="#fff" stroke="{STROKE}"/>')
     for i, (k, nm, tp, null, nxt) in enumerate(rows):
         r = y + HH + i * RH
-        if nxt:
-            o.append(f'<rect x="{x+0.5}" y="{r}" width="{W-1}" height="{RH}" fill="{NEXT}"/>')
         if k == 'PK':
             o.append(f'<line x1="{x}" y1="{r+RH}" x2="{x+W}" y2="{r+RH}" stroke="{STROKE}"/>')
         o.append(f'<text x="{x+KW/2}" y="{r+17}" text-anchor="middle" font-size="11" font-weight="bold">{k}</text>')
@@ -82,11 +80,6 @@ for eid, s, si, t, ti, pts, d0, d1 in E:
     o.append(f'<polyline points="{" ".join(f"{a},{b}" for a, b in pts)}" {S}/>')
     o += mark('one', pts[0], d0) + mark('many', pts[-1], d1)
 
-# легенда
-ly2 = ly + H('likes') + 30
-o.append(f'<rect x="20" y="{ly2-11}" width="22" height="14" fill="{NEXT}" stroke="#d6b656"/>')
-o.append(f'<text x="50" y="{ly2}" font-size="12">заполняется по кнопке «Далее» (title обязательно)</text>')
-o.append(f'<text x="20" y="{ly2+22}" font-size="12"><tspan font-style="italic" fill="#888">NULL</tspan> — необязательное поле; остальные поля NOT NULL</text>')
 o.append('</svg>')
 open('docs/er.svg', 'w').write('\n'.join(o))
 
@@ -111,9 +104,6 @@ for eid, s, si, t, ti, pts, d0, d1 in E:
     nx_ = 0 if d1 == (-1, 0) else 1
     mids = ''.join(f'<mxPoint x="{a}" y="{b}"/>' for a, b in pts[1:-1])
     c.append(f'<mxCell id="{eid}" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERmandOne;endArrow=ERzeroToMany;startFill=0;endFill=0;startSize=10;endSize=10;exitX={ex};exitY={ey};exitDx=0;exitDy=0;entryX={nx_};entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="{src}" target="{t}_{ti}"><mxGeometry relative="1" as="geometry"><Array as="points">{mids}</Array></mxGeometry></mxCell>')
-c.append(f'<mxCell id="lg1" value="заполняется по кнопке «Далее» (title обязательно)" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1"><mxGeometry x="50" y="{ly2-14}" width="420" height="20" as="geometry"/></mxCell>')
-c.append(f'<mxCell id="lg0" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor={NEXT};strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="20" y="{ly2-11}" width="22" height="14" as="geometry"/></mxCell>')
-c.append(f'<mxCell id="lg2" value="NULL — необязательное поле; остальные поля NOT NULL" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1"><mxGeometry x="20" y="{ly2+8}" width="460" height="20" as="geometry"/></mxCell>')
 c.append('</root></mxGraphModel></diagram></mxfile>')
 open('docs/er.drawio', 'w').write('\n'.join(c))
 print(CW, CH)

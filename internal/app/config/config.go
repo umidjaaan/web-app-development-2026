@@ -5,35 +5,34 @@ package config
 import (
 	"bufio"
 	"os"
-	"strconv"
 	"strings"
 )
 
 // Config — настройки запуска приложения.
 type Config struct {
 	Addr string // адрес HTTP-сервера, APP_ADDR
-	// MediaBaseURL — публичный базовый URL бакета Minio, MEDIA_BASE_URL.
-	// Для демонстрации без Minio можно указать /media — тогда файлы
-	// отдаются из локальной папки media/.
-	MediaBaseURL string
-	// CurrentUserID — пользователь, от имени которого работает приложение.
-	// Авторизация появится в ЛР4, до тех пор пользователь задаётся здесь.
-	CurrentUserID uint
+
+	// MinIO — хранилище изображений и видео услуг.
+	MinioEndpoint  string // MINIO_ENDPOINT, например localhost:9000
+	MinioAccessKey string // MINIO_ACCESS_KEY
+	MinioSecretKey string // MINIO_SECRET_KEY
+	MinioBucket    string // MINIO_BUCKET
+	// MediaBaseURL — публичный адрес бакета: из него собираются ссылки
+	// на файлы в ответах API (в БД хранятся только имена файлов).
+	MediaBaseURL string // MEDIA_BASE_URL
 }
 
 // Load читает .env (если он есть) и собирает конфигурацию.
 func Load() Config {
 	LoadEnvFile(".env")
 
-	id, err := strconv.ParseUint(envOr("CURRENT_USER_ID", "1"), 10, 64)
-	if err != nil {
-		id = 1
-	}
-
 	return Config{
-		Addr:          envOr("APP_ADDR", ":8080"),
-		MediaBaseURL:  envOr("MEDIA_BASE_URL", "http://localhost:9000/import-categories"),
-		CurrentUserID: uint(id),
+		Addr:           envOr("APP_ADDR", ":8080"),
+		MinioEndpoint:  envOr("MINIO_ENDPOINT", "localhost:9000"),
+		MinioAccessKey: envOr("MINIO_ACCESS_KEY", "minioadmin"),
+		MinioSecretKey: envOr("MINIO_SECRET_KEY", "minioadmin"),
+		MinioBucket:    envOr("MINIO_BUCKET", "import-categories"),
+		MediaBaseURL:   envOr("MEDIA_BASE_URL", "http://localhost:9000/import-categories"),
 	}
 }
 

@@ -1,12 +1,8 @@
-.PHONY: run run-local deps up down migrate migrate-drop media placeholder figma fmt
+.PHONY: run deps up down migrate migrate-drop media diagrams fmt
 
 # Запуск приложения
 run:
 	go run ./cmd/main
-
-# Запуск без Minio: медиа отдаются из локальной папки media/
-run-local:
-	MEDIA_BASE_URL=/media go run ./cmd/main
 
 # Загрузка зависимостей и генерация go.sum
 deps:
@@ -32,13 +28,10 @@ migrate-drop:
 media:
 	python3 tools/genmedia/gen.py
 
-# Перерисовать изображение-заглушку
-placeholder:
-	python3 tools/genmedia/placeholder.py
-
-# Перерисовать макеты трёх экранов для Figma
-figma:
-	python3 tools/genfigma/gen_svg.py
+# Перерисовать ER-диаграмму и диаграмму классов (docs/*.svg, docs/*.drawio)
+diagrams:
+	python3 tools/gen_er.py
+	python3 tools/gen_classes.py
 
 fmt:
 	gofmt -w ./cmd ./internal

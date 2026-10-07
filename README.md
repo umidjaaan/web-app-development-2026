@@ -1,215 +1,209 @@
-# Амфора — лабораторные работы №1 и №2
+# Амфора — лабораторная работа №3 (веб-сервис)
 
 Курс «Разработка интернет-приложений», МГТУ им. Н. Э. Баумана, ИУ5.
 
-**Тема варианта.** История и культура: оценка торговых связей по статистике
-импортных находок.
+**Тема.** История и культура: оценка торговых связей по статистике импортных находок.
 
-* **Услуга** — характерная категория импортных находок. В коде, в адресах и в базе данных сущность называется
-  **`import_categories`**.
-* **Поля предметной области** — дата начала и дата конца бытования типа
-  (`date_start`, `date_end`). По дате начала работает фильтрация.
-* **Заявка** появится в ЛР3.
+* **Услуга** — категория импортных находок. В коде, адресах и БД — **`import_categories`**.
+* **Поля по теме** — дата начала и дата конца бытования типа (`date_start`, `date_end`).
+  Фильтрация списка — по дате начала.
 
-Памятник, по которому собрана сводка, — Елизаветовское городище в дельте Дона.
+В ЛР3 приложение стало веб-сервисом (REST API) для будущего SPA: HTML-шаблоны убраны,
+все ответы — JSON, все адреса начинаются с `/api`. Данные — PostgreSQL через ORM GORM,
+изображения и видео услуг — файлы в MinIO.
 
 ---
 
-## 1. Быстрый запуск
+## 1. Запуск
 
 Нужны Go 1.21+ и Docker.
 
 ```bash
-go mod tidy                                             # зависимости
-docker compose -f deployments/docker-compose.yml up -d  # PostgreSQL, Adminer, Minio
-go run ./cmd/migrate                                    # таблицы + наполнение
-go run ./cmd/main                                       # приложение
+go mod tidy                                             # зависимости: gin, gorm, minio-go
+docker compose -f deployments/docker-compose.yml up -d  # PostgreSQL, Adminer, MinIO
+go run ./cmd/migrate -drop                              # таблицы + начальные данные
+go run ./cmd/main                                       # API: http://localhost:8080/api
 ```
-
-Открыть <http://localhost:8080> — произойдёт переход на первую карточку ленты.
 
 | Адрес | Что это |
 |---|---|
-| <http://localhost:8080> | приложение |
-| <http://localhost:8081> | Adminer: база `amphora`, `rip` / `rip`, сервер `postgres` |
-| <http://localhost:9001> | веб-консоль Minio, `minioadmin` / `minioadmin` |
-| `localhost:5433` | PostgreSQL снаружи контейнера |
+| <http://localhost:8080/api/import_categories> | API (список услуг) |
+| <http://localhost:8081> | Adminer: сервер `postgres`, база `amphora`, `rip` / `rip` |
+| <http://localhost:9001> | консоль MinIO, `minioadmin` / `minioadmin`, бакет `import-categories` |
 
-Пересоздать базу с нуля: `go run ./cmd/migrate -drop`.
-
-Настройки лежат в `.env` (образец — `.env.example`). Без этого файла берутся
-те же значения по умолчанию, поэтому всё работает сразу.
-
----
-
-## 2. Что сделано в ЛР2
-
-| Требование | Где выполнено |
-|---|---|
-| Три таблицы: услуги, пользователи, лайки (м-м) | `internal/app/ds/import_category.go`, `user.go`, `like.go` |
-| Структура БД и связи | `docs/er.md`, `docs/er.drawio` |
-| Миграции | `cmd/migrate/main.go` — `AutoMigrate` по моделям GORM |
-| Наполнение таблиц | `internal/app/repository/seed.go` (и вручную через Adminer) |
-| Подключение к БД, конфигурация | `internal/app/dsn`, `internal/app/config`, файл `.env` |
-| 3 GET через ORM | плитка с фильтром по дате начала, лента, добавление |
-| 2 кнопки и 2 статуса через ORM | «Далее» → `draft` (черновик), «Опубликовать» → `published` |
-| Логическое удаление через курсор | `Repository.DeleteImportCategory`: `sqlDB.Exec("UPDATE ...")` |
-| Статусы услуги | `draft`, `published`, `deleted` |
-| Один черновик у пользователя | частичный уникальный индекс `uniq_draft_per_user` |
-| Логи SQL в консоли | логгер GORM в режиме Info (`internal/app/repository/connect.go`) |
-
-### Шесть методов
-
-| № | Метод и адрес | Контроллер | Как работает с БД |
-|---|---|---|---|
-| 1 | `GET /import_categories?date_start=` | `ImportCategoryList` | ORM: `Where("status = 'published'")`, `Where("date_start >= ?")`, `Find` |
-| 2 | `GET /import_categories/feed/:id` | `ImportCategoryFeed` | ORM: `First` + подсчёт лайков |
-| 3 | `GET /import_categories/add` | `ImportCategoryAdd` | ORM: черновик пользователя (`First`) |
-| 4 | `POST /import_categories` — кнопка «Далее» | `ImportCategoryCreate` | ORM: `Create` — статус `draft` |
-| 5 | `POST /import_categories/:id/publish` — кнопка «Опубликовать» | `ImportCategoryPublish` | ORM: `Model().Where().Updates()` — статус `published` |
-| 6 | `POST /import_categories/:id/delete` — иконка в плитке | `ImportCategoryDelete` | **курсор**: `sqlDB.Exec("UPDATE import_categories SET status = 'deleted' ...")` |
-
-### Страница «Добавление»
-
-1. **Шаг 1** — фото и видео друг под другом (выбор файла из проводника)
-   и название. Кнопка **«Далее»** создаёт черновик.
-2. **Шаг 2** — черновик: фото и видео сверху, ниже два поля по теме
-   (дата начала, дата конца) и описание. Кнопка **«Опубликовать»**
-   сохраняет поля и меняет статус.
-
-По кнопке «Далее» заполняются `title` (обязательно), `image_url` и `video_url`
-(необязательно). Поля `date_start`, `date_end`, `description` у черновика
-пустые (NULL). Подробно — в [docs/er.md](docs/er.md).
+Коллекция запросов для Postman / Insomnia —
+[`docs/postman/amphora.postman_collection.json`](docs/postman/amphora.postman_collection.json)
+(Postman: *Import*; Insomnia: *Import → From File*). В ней папка «Основные запросы» —
+10 методов API в порядке показа, и папка «Проверка ошибок» — запросы с плохими ответами.
 
 ---
 
-## 3. Структура проекта
+## 2. Текущий пользователь — функция-singleton
 
-```
-cmd/main/main.go                              точка входа приложения
-cmd/migrate/main.go                           миграции и наполнение таблиц
-internal/
-  api/server.go                               конфигурация, подключение к БД, роутинг
-  app/
-    config/config.go                          чтение .env и настроек
-    dsn/dsn.go                                строка подключения к PostgreSQL
-    ds/import_category.go                     модель услуги (таблица import_categories)
-    ds/user.go                                модель пользователя (таблица users)
-    ds/like.go                                связь м-м (таблица likes)
-    repository/import_categories.go           запросы к БД: ORM и SQL UPDATE
-    repository/seed.go                        исходные данные
-    handler/import_categories.go              шесть контроллеров
-templates/                                    шаблоны страниц
-resources/styles/                             app.css и по файлу на страницу
-media/img, media/video                        исходники для заливки в Minio
-deployments/docker-compose.yml                PostgreSQL, Adminer, Minio
-docs/er.md                                    структура БД и инструкция по StarUML
-docs/figma.md, docs/figma/                    макеты трёх экранов
-docs/screens/                                 скриншоты страниц
-tools/genmedia/, tools/genfigma/              генераторы медиа и макетов
+Авторизация появится в ЛР4. До этого пользователь-создатель зафиксирован константой
+и выдаётся функцией-singleton `auth.CurrentUserID()`
+([internal/app/auth/current_user.go](internal/app/auth/current_user.go)):
+
+```go
+const creatorID uint = 1 // пользователь umid
+
+var (
+	once          sync.Once
+	currentUserID uint
+)
+
+func CurrentUserID() uint {
+	once.Do(func() { currentUserID = creatorID })
+	return currentUserID
+}
 ```
 
----
-
-## 4. Модель данных
-
-Полное описание таблиц, типов, ключей и связей — в [docs/er.md](docs/er.md).
-Коротко:
-
-* `users` — пользователи; авторизация появится в ЛР4, пока приложение
-  работает от имени пользователя из `CURRENT_USER_ID`.
-* `import_categories` — услуги. Статус: `draft` (черновик), `published`
-  (опубликована, видна в ленте и плитке), `deleted` (логически удалена).
-* `likes` — связь «многие ко многим» между пользователем и категорией;
-  пара `(user_id, import_category_id)` уникальна.
-
-**Даты до нашей эры.** Все датировки варианта относятся к эпохе до н. э.,
-а HTML-поле `<input type="date">` не принимает отрицательный год. Поэтому год
-до н. э. хранится положительным числом: `0620-01-01` читается как
-«620 г. до н. э.» (конструктор `ds.BCE(620)`). Следствие: чем больше хранимая
-дата, тем раньше событие, поэтому сравнения в фильтре и сортировке
-инвертированы — каждое такое место помечено комментарием в коде.
+Функция вызывается во всех методах домена «услуга»
+([internal/app/handler/import_categories.go](internal/app/handler/import_categories.go)):
+признак `is_creator` в списке, `is_liked` в ленте, черновик, создание, публикация,
+удаление и лайк.
 
 ---
 
-## 5. Что сделано в ЛР1 (осталось без изменений)
+## 3. HTTP-методы
 
-Три страницы в портретном режиме и нижняя навигационная панель: лента
-(видео на весь экран, параметры и иконки в правом рельсе, описание в две
-строки с раскрытием «Ещё»), добавление и плитка. Вёрстка без единой строки
-JavaScript: фильтр — обычная форма `method="get"`, диаграмма долей — CSS,
-раскрытие описания — скрытый чекбокс с `:checked`.
+Ответ всегда JSON одного вида:
 
-### Что скопировано у arzamas.academy
+```json
+{"status": "success", "data": { ... }, "message": "черновик создан"}
+{"status": "fail", "message": "у пользователя уже есть черновик"}
+```
 
-| Элемент интерфейса | Цвет / значение | Где применено |
+Коды: 200 — успех, 201 — создано, 400 — неверные данные, 404 — записи нет или она
+недоступна, 409 — конфликт состояний, 500 — ошибка сервера. Ответ «успех» приходит,
+только если данные в БД действительно изменились. Услуги в статусе `deleted`
+клиенту не передаются.
+
+### Домен «услуга» — `/api/import_categories`
+
+| № | Метод | Адрес | Что делает | Тело запроса | Ответ `data` |
+|---|---|---|---|---|---|
+| 1 | GET | `/api/import_categories?date_start=0500-01-01` | список **опубликованных** услуг; фильтр — дата начала не позднее указанной | — | массив; `is_creator` = 1, если создатель услуги — текущий пользователь |
+| 2 | GET | `/api/import_categories/feed` | лента: первая опубликованная услуга | — | услуга; `is_liked` = 1, если текущий пользователь её лайкнул; `creator`, `position`, `total`, `next_id` |
+| | GET | `/api/import_categories/feed?id=3&next=true` | лента по ид: с `next=true` — следующая после услуги 3 (после последней — первая) | — | то же |
+| 3 | GET | `/api/import_categories/draft` | черновик текущего пользователя (не больше одного), ид не указывается | — | черновик / 404 |
+| 4 | POST | `/api/import_categories` | добавление: создаёт черновик, файлы кладёт в MinIO | `multipart/form-data`: `title` (обяз.), `image` и `video` — файлы | 201, черновик с именами файлов и ссылками / 409, если черновик уже есть |
+| 5 | PUT | `/api/import_categories/:id/publish` | публикация: черновик → опубликована | JSON: `date_start`, `date_end` (обяз.), `description` | опубликованная услуга |
+| 6 | DELETE | `/api/import_categories/:id` | мягкое удаление (статус `deleted`), только услуги текущего пользователя | — | `{"id": 17, "status": "deleted"}` |
+| 7 | POST | `/api/import_categories/:id/like` | лайк от текущего пользователя | JSON: `{"like": 1}` ставит, `{"like": 0}` отменяет | `is_liked`, `likes` / 409 при повторе |
+
+### Домен «пользователь» — `/api/users`
+
+| № | Метод | Адрес | Что делает | Тело запроса | Ответ `data` |
+|---|---|---|---|---|---|
+| 8 | POST | `/api/users/register` | регистрация | JSON: `login` (3–64), `password` (от 6) | 201, пользователь без пароля / 409, логин занят |
+| 9 | POST | `/api/users/login` | аутентификация — заглушка до ЛР4 | — | — |
+| 10 | POST | `/api/users/logout` | деавторизация — заглушка до ЛР4 | — | — |
+
+### Бизнес-правила
+
+* **Статусы** меняются только так: создание → `draft`; `PUT …/publish` → `published`;
+  `DELETE` → `deleted`. У создателя два разных метода — опубликовать и удалить.
+  Вернуть в черновик нельзя: такого метода нет, а публикация меняет только запись
+  в статусе `draft`. Повторная публикация, публикация чужой или удалённой услуги — 404.
+* **Системные поля** — `id`, `status`, `creator_id`, `is_moderator` — с клиента не принимаются:
+  их нет в сериализаторах запросов, а JSON с неизвестным полем отклоняется (400).
+  В форме создания такие поля тоже дают 400. Имена файлов генерирует сервер.
+* **Один черновик** на пользователя: проверка в коде и частичный уникальный индекс в БД.
+* **Файлы.** Фото — JPG / PNG / WEBP до 10 МБ, видео — MP4 / WEBM до 50 МБ. Тип проверяется
+  по содержимому (`http.DetectContentType`). Имя генерируется на латинице из названия:
+  «Книдские амфоры» → `knidskie-amfory-3f9a0c.jpg`. В поля `image` / `video` пишется имя,
+  файл кладётся в бакет `import-categories` в папку `img/` или `video/`, ссылку собирает
+  сериализатор. Если запись в БД не создалась, загруженные файлы удаляются.
+* **Даты** — годы до н. э. хранятся положительным числом (`0620-01-01` = 620 г. до н. э.),
+  поэтому дата начала должна быть не меньше даты конца, а список упорядочен по убыванию даты.
+
+---
+
+## 4. Таблицы БД
+
+ER-диаграмма — [docs/er.png](docs/er.png), исходник — [docs/er.drawio](docs/er.drawio).
+
+**users**
+
+| Поле | Тип | Ограничения |
 |---|---|---|
-| Фон | `#111110` (графит Arzamas `#1A1A1A` в основе) | `--shell` |
-| Текст | `#E8E8E1` на тёмном, `#1A1A1A` на светлом | `--paper`, `--ink` |
-| Кнопка | `#FECF00`, текст `#1A1A1A`, радиус 999 px, высота 46 px | `.btn--primary` |
-| Карточка | `#E8E8E1`, радиус 20 px, тень при hover | `.card` |
-| Панель навигации | `rgba(17,17,16,0.94)`, активный пункт `#FECF00` | `.tabbar` |
-| Переход | `0.2s` | `--fast` |
+| id | bigint | PK |
+| login | varchar(64) | NOT NULL, UNIQUE |
+| password | varchar(128) | NOT NULL |
+| is_moderator | boolean | NOT NULL, DEFAULT false |
 
-Шрифт Arzamas — Formular, он проприетарный, поэтому взят системный гротеск
-с тем же рисунком (Inter → Helvetica Neue → Arial).
+**import_categories**
 
----
+| Поле | Тип | Ограничения | Кто заполняет |
+|---|---|---|---|
+| id | bigint | PK | сервер |
+| title | varchar(128) | NOT NULL | клиент, POST |
+| image | varchar(256) | NULL | сервер: имя загруженного файла |
+| video | varchar(256) | NULL | сервер: имя загруженного файла |
+| date_start | date | NULL, INDEX | клиент, PUT publish |
+| date_end | date | NULL | клиент, PUT publish |
+| description | text | NULL | клиент, PUT publish |
+| status | varchar(16) | NOT NULL: `draft` / `published` / `deleted` | сервер |
+| creator_id | bigint | NOT NULL, FK → users.id | сервер (singleton) |
 
-## 6. Порядок показа ЛР2
+Частичный уникальный индекс `uniq_draft_per_user (creator_id) WHERE status = 'draft'`.
 
-1. **Adminer** (<http://localhost:8081>): логически удалить услугу сменой
-   статуса на `deleted`, показать данные через `SELECT`.
-2. **Приложение**: фильтр по дате начала, удаление иконкой в плитке,
-   переход по URL удалённой услуги (404), добавление: «Далее» → `SELECT`
-   (статус `draft`) → «Опубликовать» → `SELECT` (статус `published`).
-3. **Связь м-м**: изменить в Adminer поля услуги и строки в `likes`,
-   показать изменения в приложении.
-4. **Код**: модели (`internal/app/ds`), пять контроллеров через ORM,
-   удаление через курсор (`DeleteImportCategory`).
-5. **Фото и видео по умолчанию** — в HTML-шаблонах (`{{if}} ... {{else}}`).
+**likes** — связь «многие ко многим»
 
----
+| Поле | Тип | Ограничения |
+|---|---|---|
+| id | bigint | PK |
+| user_id | bigint | NOT NULL, FK → users.id |
+| import_category_id | bigint | NOT NULL, FK → import_categories.id |
 
-## 7. Ответы на контрольные вопросы ЛР2
-
-**Виды БД.** Реляционные (PostgreSQL, MySQL) — данные в таблицах со строгой
-схемой и связями по ключам; документные (MongoDB) — JSON-документы без общей
-схемы; ключ-значение (Redis) — быстрый доступ по ключу; графовые (Neo4j) —
-акцент на связях. Здесь выбрана реляционная: у услуг, пользователей и лайков
-жёсткая структура и важны связи, а м-м естественно ложится на связную таблицу.
-
-**SQL-запросы.** DDL (`CREATE TABLE`, `CREATE INDEX`) — описание структуры,
-их генерирует миграция; DML (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) — работа
-с данными. В проекте `SELECT` и `INSERT` идут через ORM, а логическое
-удаление написано руками: `UPDATE import_categories SET status = 'deleted'
-WHERE id = $1`.
-
-**Курсоры.** Курсор позволяет читать результат запроса порциями, не поднимая
-всю выборку в память сразу; в PostgreSQL объявляется `DECLARE ... CURSOR FOR`
-и читается `FETCH`. Для сводки в полтора десятка строк это избыточно, но на
-больших выборках экономит память; в Go аналог — `sql.Rows`, который GORM
-использует внутри при `Find`.
-
-**ORM.** Object-Relational Mapping отображает строки таблиц на структуры
-языка: `ds.ImportCategory` ↔ строка `import_categories`. Плюсы — типобезопасность,
-миграции по моделям, меньше рутины; минусы — скрытые запросы и потеря
-контроля над сложным SQL, поэтому удаление написано напрямую.
-
-**Модель и миграции.** Модель — структура с тегами `gorm`, описывающая
-таблицу. Миграция — приведение схемы БД к состоянию моделей: `AutoMigrate`
-создаёт таблицы, столбцы и индексы, а то, чего ORM не умеет (частичный
-уникальный индекс), добавляется отдельным SQL-запросом.
-
-**Чистая архитектура.** Слои разделены и зависят внутрь: `ds` — сущности,
-`repository` — доступ к данным, `handler` — контроллеры, `templates` —
-представление. Обработчик не знает про SQL, репозиторий — про HTTP; поэтому
-замена хранилища (в ЛР1 был массив, теперь PostgreSQL) не потребовала
-переписывать контроллеры.
+Пара `(user_id, import_category_id)` уникальна.
 
 ---
 
-## 8. Что дальше
+## 5. Структура кода
 
-ЛР3 — REST API и сущность «заявка» (расчёт удельного веса по выбранному
-набору категорий) со связью «многие ко многим» и статусом «черновик».
+```
+cmd/main/main.go                        точка входа
+cmd/migrate/main.go                     миграции и начальные данные
+internal/api/server.go                  сборка: PostgreSQL, MinIO, маршруты
+internal/app/auth/current_user.go       функция-singleton текущего пользователя
+internal/app/ds/                        модели (таблицы): ImportCategory, User, Like
+internal/app/serializer/                сериализаторы ответов и запросов
+internal/app/repository/                доступ к данным: GORM (услуги, пользователи) и MinIO (файлы)
+internal/app/handler/                   контроллеры: домены «услуга» и «пользователь»
+deployments/docker-compose.yml          PostgreSQL, Adminer, MinIO
+docs/                                   ER-диаграмма, диаграмма классов, коллекция Postman
+```
+
+* **Модели** (`ds`) описывают таблицы: теги `gorm` — колонки и связи, теги `json` — имена
+  полей; пароль не сериализуется (`json:"-"`).
+* **Сериализаторы** (`serializer`) описывают, что уходит клиенту и что приходит от него:
+  ответы без пароля, с готовыми ссылками на файлы, признаками 0/1 и вложенным создателем
+  (`creator` — вложенная сериализация); запросы — без системных полей, с проверкой
+  `binding:"required"`.
+* **Домены** — интерфейсы `ImportCategoriesDomain` и `UsersDomain` в
+  [internal/app/handler/handler.go](internal/app/handler/handler.go).
+
+Диаграмма классов (страницы → домены → модели → таблицы): [docs/classes.png](docs/classes.png),
+исходник — [docs/classes.drawio](docs/classes.drawio).
+
+---
+
+## 6. Порядок показа ЛР3
+
+1. **Скриншоты 1–10** — Postman/Insomnia, папка «Основные запросы»: список с фильтром,
+   добавление с фото и видео, черновик, публикация, лента без ид, лента `?id=…&next=true`,
+   лайк, удаление, регистрация.
+2. **Скриншоты 11–13** — изменённые данные в Adminer:
+   ```sql
+   SELECT id, title, image, video, date_start, date_end, status, creator_id
+     FROM import_categories ORDER BY id DESC;           -- новая услуга: published → deleted
+   SELECT * FROM likes ORDER BY id DESC;                -- лайк текущего пользователя
+   SELECT id, login, password, is_moderator FROM users ORDER BY id DESC;  -- новый пользователь
+   ```
+   Файлы с латинскими именами видны в консоли MinIO (бакет `import-categories`, папки `img`, `video`).
+3. **Скриншоты 14–15** — модели (`internal/app/ds`) и сериализаторы (`internal/app/serializer`).
+4. **Скриншоты 16–17** — функция-singleton и её вызовы, этот README.
+
+Ответы на контрольные вопросы — [docs/questions.md](docs/questions.md).

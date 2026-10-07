@@ -1,18 +1,18 @@
 package ds
 
 // Like — связь «многие ко многим» между пользователем и услугой:
-// пользователь отметил услугу. Таблица likes.
+// пользователь лайкнул услугу. Таблица likes.
 //
 // Пара (user_id, import_category_id) уникальна: один пользователь
-// не может отметить одну и ту же услугу дважды.
+// не может лайкнуть одну и ту же услугу дважды.
 type Like struct {
-	ID uint `gorm:"primaryKey"`
+	ID uint `gorm:"primaryKey" json:"id"`
 
-	UserID           uint `gorm:"not null;uniqueIndex:idx_likes_user_category"`
-	ImportCategoryID uint `gorm:"not null;uniqueIndex:idx_likes_user_category"`
+	UserID           uint `gorm:"not null;uniqueIndex:idx_likes_user_category" json:"user_id"`
+	ImportCategoryID uint `gorm:"not null;uniqueIndex:idx_likes_user_category" json:"import_category_id"`
 
-	User           *User           `gorm:"foreignKey:UserID"`
-	ImportCategory *ImportCategory `gorm:"foreignKey:ImportCategoryID"`
+	User           *User           `gorm:"foreignKey:UserID" json:"-"`
+	ImportCategory *ImportCategory `gorm:"foreignKey:ImportCategoryID" json:"-"`
 }
 
 // TableName — имя связной таблицы.

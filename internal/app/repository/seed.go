@@ -11,7 +11,7 @@ import (
 
 // seedCategory — запись для первоначального наполнения таблицы
 // import_categories. Поле LikedBy превращается в строки связной таблицы likes.
-// Slug — имя файлов фото и видео в бакете MinIO (в таблицу не пишется).
+// Slug — основа имён файлов фото и видео в бакете MinIO.
 type seedCategory struct {
 	ID          uint
 	Slug        string
@@ -222,11 +222,11 @@ func (r *Repository) Seed() error {
 			item := ds.ImportCategory{
 				ID:          seed.ID,
 				Title:       seed.Title,
-				ImageURL:    r.mediaURL("img", seed.Slug, "jpg"),
-				VideoURL:    r.mediaURL("video", seed.Slug, "mp4"),
+				Image:       ds.Optional(seed.Slug + ".jpg"), // файл img/<slug>.jpg в MinIO
+				Video:       ds.Optional(seed.Slug + ".mp4"), // файл video/<slug>.mp4 в MinIO
 				DateStart:   &start,
 				DateEnd:     &end,
-				Description: seed.Description,
+				Description: ds.Optional(seed.Description),
 				Status:      seed.Status,
 				CreatorID:   creator,
 			}

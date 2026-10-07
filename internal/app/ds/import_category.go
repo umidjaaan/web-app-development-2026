@@ -1,10 +1,7 @@
-// Package ds (data structures) описывает предметную область приложения
-// «Амфора» — оценка торговых связей по статистике импортных находок.
-//
-// Основная сущность предметной области — import_categories: характерные
-// категории импортных товаров с указанием центра производства.
-// Структуры этого пакета одновременно являются моделями GORM: по ним
-// создаются таблицы в PostgreSQL (см. cmd/migrate).
+// Package ds — модели предметной области «Амфора» (оценка торговых связей
+// по статистике импортных находок). Каждая модель — таблица PostgreSQL:
+// по тегам gorm таблицы создаются миграцией (cmd/migrate), теги json
+// задают имена полей при сериализации (пароль не сериализуется: json:"-").
 package ds
 
 import (
@@ -12,11 +9,13 @@ import (
 	"time"
 )
 
-// Status — состояние категории импорта.
+// Status — состояние услуги. Меняется только на бэкенде:
 //
-//	draft     — черновик: создан кнопкой «Далее» на странице добавления;
-//	published — опубликована кнопкой «Опубликовать», видна всем;
-//	deleted   — логически удалена (SQL UPDATE через курсор).
+//	draft     — черновик: создан методом POST /api/import_categories;
+//	published — опубликована методом PUT /api/import_categories/:id/publish;
+//	deleted   — мягко удалена методом DELETE /api/import_categories/:id.
+//
+// Вернуть услугу в черновик нельзя.
 type Status string
 
 const (
@@ -24,19 +23,6 @@ const (
 	StatusPublished Status = "published"
 	StatusDeleted   Status = "deleted"
 )
-
-// Label — человекочитаемое название статуса для шаблонов.
-func (s Status) Label() string {
-	switch s {
-	case StatusDraft:
-		return "Черновик"
-	case StatusPublished:
-		return "Опубликована"
-	case StatusDeleted:
-		return "Удалена"
-	}
-	return string(s)
-}
 
 // BCE собирает дату по году до нашей эры: BCE(620) — 620 г. до н. э.
 //
@@ -49,65 +35,62 @@ func BCE(year int) time.Time {
 	return time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
 }
 
-// DateLayout — формат даты HTML-поля <input type="date">.
+// DateLayout — формат дат в API и в поле <input type="date">: ГГГГ-ММ-ДД.
 const DateLayout = "2006-01-02"
 
-// ImportCategory — услуга: категория импортных находок.
-// Таблица в базе данных — import_categories.
+// ImportCategory — услуга: категория импортных находок. Таблица import_categories.
 //
-// По кнопке «Далее» заполняются название (обязательно), фото и видео
-// (необязательно) — так создаётся черновик. Перед публикацией
+// При создании (POST) заполняются название (обязательно), фото и видео
+// (необязательно) — так появляется черновик. При публикации (PUT)
 // заполняются два поля по теме — дата начала и дата конца — и описание.
 // Необязательные поля в таблице допускают NULL.
+//
+// Image и Video — имена файлов в MinIO (например knidskie-amfory-3f9a0c.jpg),
+// сами файлы лежат в бакете в папках img/ и video/. Необязательные поля —
+// указатели: пустое значение попадает в таблицу как NULL.
 type ImportCategory struct {
-	ID uint `gorm:"primaryKey"`
+	ID uint `gorm:"primaryKey" json:"id"`
 
-	// «Далее»
-	Title    string `gorm:"size:128;not null"` // обязательно
-	ImageURL string `gorm:"size:256"`          // необязательно (NULL)
-	VideoURL string `gorm:"size:256"`          // необязательно (NULL)
+	Title string  `gorm:"size:128;not null" json:"title"` // обязательно
+	Image *string `gorm:"size:256" json:"image"`          // имя файла, NULL
+	Video *string `gorm:"size:256" json:"video"`          // имя файла, NULL
 
-	// Два поля по теме. У черновика пустые (NULL).
-	// По DateStart работает фильтрация.
-	DateStart *time.Time `gorm:"type:date;index"`
-	DateEnd   *time.Time `gorm:"type:date"`
+	// Два поля по теме, у черновика пустые (NULL). Фильтр списка — по DateStart.
+	DateStart *time.Time `gorm:"type:date;index" json:"date_start"`
+	DateEnd   *time.Time `gorm:"type:date" json:"date_end"`
 
-	Description string `gorm:"type:text"` // необязательно (NULL)
+	Description *string `gorm:"type:text" json:"description"` // NULL
 
-	Status Status `gorm:"size:16;not null;default:draft;index"`
+	// Системные поля: задаются только на бэкенде.
+	Status    Status `gorm:"size:16;not null;default:draft;index" json:"status"`
+	CreatorID uint   `gorm:"not null;index" json:"creator_id"`
+	Creator   *User  `gorm:"foreignKey:CreatorID" json:"-"`
 
-	// Создатель услуги — обязателен. Один черновик на пользователя
-	// обеспечивает частичный уникальный индекс (cmd/migrate/main.go).
-	CreatorID uint  `gorm:"not null;index"`
-	Creator   *User `gorm:"foreignKey:CreatorID"`
-
-	Likes []Like `gorm:"foreignKey:ImportCategoryID"`
+	Likes []Like `gorm:"foreignKey:ImportCategoryID" json:"-"`
 
 	// LikesTotal не хранится в таблице: считается запросом по likes.
-	LikesTotal int `gorm:"-"`
+	LikesTotal int `gorm:"-" json:"-"`
 }
 
 // TableName — имя таблицы услуг.
 func (ImportCategory) TableName() string { return "import_categories" }
 
-// LikesCount — количество лайков карточки (используется в шаблонах).
-func (c ImportCategory) LikesCount() int { return c.LikesTotal }
-
 // StartYear и EndYear — годы до н. э. (0, если дата не заполнена).
 func (c ImportCategory) StartYear() int { return year(c.DateStart) }
 func (c ImportCategory) EndYear() int   { return year(c.DateEnd) }
 
-// PeriodLabel — интервал бытования: «620–480 гг. до н. э.».
-func (c ImportCategory) PeriodLabel() string {
+// PeriodLabel — интервал бытования: «620–480 гг. до н. э.» (nil у черновика).
+func (c ImportCategory) PeriodLabel() *string {
 	if c.DateStart == nil || c.DateEnd == nil {
-		return ""
+		return nil
 	}
-	return fmt.Sprintf("%d–%d гг. до н. э.", c.StartYear(), c.EndYear())
+	s := fmt.Sprintf("%d–%d гг. до н. э.", c.StartYear(), c.EndYear())
+	return &s
 }
 
-// DateStartInput и DateEndInput — значения для <input type="date">.
-func (c ImportCategory) DateStartInput() string { return dateInput(c.DateStart) }
-func (c ImportCategory) DateEndInput() string   { return dateInput(c.DateEnd) }
+// DateStartString и DateEndString — даты в формате API (nil, если не заполнены).
+func (c ImportCategory) DateStartString() *string { return dateString(c.DateStart) }
+func (c ImportCategory) DateEndString() *string   { return dateString(c.DateEnd) }
 
 func year(t *time.Time) int {
 	if t == nil {
@@ -116,9 +99,18 @@ func year(t *time.Time) int {
 	return t.Year()
 }
 
-func dateInput(t *time.Time) string {
+func dateString(t *time.Time) *string {
 	if t == nil {
-		return ""
+		return nil
 	}
-	return t.Format(DateLayout)
+	s := t.Format(DateLayout)
+	return &s
+}
+
+// Optional — необязательное строковое поле: пустая строка → NULL.
+func Optional(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }

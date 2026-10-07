@@ -1,13 +1,6 @@
-// Package repository — слой доступа к данным (Model в терминах MVT).
-// Данные лежат в PostgreSQL, обращение к ним идёт через ORM GORM;
-// единственное исключение — логическое удаление: оно выполняется
-// прямым SQL-запросом UPDATE через курсор (соединение database/sql).
 package repository
 
 import (
-	"errors"
-	"fmt"
-	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -15,218 +8,187 @@ import (
 	"rip/lab1/internal/app/ds"
 )
 
-// Site — археологический памятник, по материалам которого собрана сводка.
-const Site = "Елизаветовское городище, дельта Дона"
-
-// ErrNotFound возвращается, когда категория отсутствует или недоступна.
-var ErrNotFound = errors.New("категория импорта не найдена")
-
-// Repository инкапсулирует работу с таблицами import_categories, users и likes.
-type Repository struct {
-	db        *gorm.DB
-	mediaBase string
+// published — базовый запрос: только опубликованные услуги.
+// Черновики и удалённые записи в список и ленту не попадают.
+func (r *Repository) published() *gorm.DB {
+	return r.db.Model(&ds.ImportCategory{}).Where("status = ?", ds.StatusPublished)
 }
 
-// New создаёт репозиторий поверх открытого соединения с базой данных.
-func New(db *gorm.DB, mediaBase string) *Repository {
-	return &Repository{db: db, mediaBase: strings.TrimRight(mediaBase, "/")}
-}
-
-// DB отдаёт соединение (нужно для миграций и служебных задач).
-func (r *Repository) DB() *gorm.DB { return r.db }
-
-// Site возвращает название памятника, по которому собрана сводка.
-func (r *Repository) Site() string { return Site }
+// feedOrder — порядок ленты и списка: от ранних категорий к поздним.
+// Год до н. э. хранится положительным числом, поэтому это убывание даты.
+const feedOrder = "date_start DESC, id ASC"
 
 // ==========================================================================
-// Чтение (GET) — через ORM
+// Чтение
 // ==========================================================================
 
-// ImportCategories — опубликованные категории для ленты и плитки.
-// Фильтр — по дате начала бытования типа (календарь на странице «Плитка»).
-// Черновики и удалённые записи сюда не попадают.
+// ImportCategories — опубликованные услуги с фильтром по дате начала.
 func (r *Repository) ImportCategories(dateStart time.Time) ([]ds.ImportCategory, error) {
 	var items []ds.ImportCategory
 
-	query := r.db.Where("status = ?", ds.StatusPublished)
-
+	query := r.published()
 	if !dateStart.IsZero() {
-		// Год до н. э. хранится положительным числом, поэтому «появилась
-		// не позднее выбранной даты» — это date_start >= выбранной даты.
+		// «Тип появился не позднее выбранной даты»: для годов до н. э.,
+		// хранимых положительным числом, это date_start >= выбранной даты.
 		query = query.Where("date_start >= ?", dateStart)
 	}
-
-	// Хронологический порядок: от ранних категорий к поздним
-	// (в хранимом виде это убывание даты — см. ds.BCE).
-	if err := query.Order("date_start DESC, id ASC").Find(&items).Error; err != nil {
+	if err := query.Order(feedOrder).Find(&items).Error; err != nil {
 		return nil, err
 	}
-
-	r.fillLikes(items)
+	if err := r.fillLikes(items); err != nil {
+		return nil, err
+	}
 	return items, nil
 }
 
-// ImportCategoryByID — одна опубликованная категория (страница ленты).
-// Удалённая запись не находится — в приложении это страница 404.
-func (r *Repository) ImportCategoryByID(id uint) (ds.ImportCategory, error) {
-	var item ds.ImportCategory
-
-	err := r.db.Where("id = ? AND status = ?", id, ds.StatusPublished).First(&item).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ds.ImportCategory{}, ErrNotFound
-		}
-		return ds.ImportCategory{}, err
-	}
-
-	single := []ds.ImportCategory{item}
-	r.fillLikes(single)
-	return single[0], nil
+// FeedIDs — идентификаторы опубликованных услуг в порядке ленты.
+func (r *Repository) FeedIDs() ([]uint, error) {
+	var ids []uint
+	err := r.published().Order(feedOrder).Pluck("id", &ids).Error
+	return ids, err
 }
 
-// DraftByUser — черновик пользователя, если он есть (у пользователя
-// может быть не больше одного черновика — частичный уникальный индекс).
+// PublishedByID — одна опубликованная услуга вместе с создателем
+// (вложенная сериализация: Preload подтягивает связанную запись users).
+func (r *Repository) PublishedByID(id uint) (ds.ImportCategory, error) {
+	var item ds.ImportCategory
+	err := r.published().Preload("Creator").Where("id = ?", id).First(&item).Error
+	if err != nil {
+		return ds.ImportCategory{}, notFound(err, ErrNotFound)
+	}
+	items := []ds.ImportCategory{item}
+	if err := r.fillLikes(items); err != nil {
+		return ds.ImportCategory{}, err
+	}
+	return items[0], nil
+}
+
+// IsLiked — лайкнул ли пользователь услугу (признак 0/1 в ленте).
+func (r *Repository) IsLiked(userID, categoryID uint) (bool, error) {
+	var count int64
+	err := r.db.Model(&ds.Like{}).
+		Where("user_id = ? AND import_category_id = ?", userID, categoryID).
+		Count(&count).Error
+	return count > 0, err
+}
+
+// DraftByUser — черновик пользователя (не больше одного) вместе с создателем.
 func (r *Repository) DraftByUser(userID uint) (ds.ImportCategory, error) {
 	var item ds.ImportCategory
-
-	err := r.db.Where("status = ? AND creator_id = ?", ds.StatusDraft, userID).First(&item).Error
+	err := r.db.Preload("Creator").
+		Where("status = ? AND creator_id = ?", ds.StatusDraft, userID).
+		First(&item).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ds.ImportCategory{}, ErrNotFound
-		}
-		return ds.ImportCategory{}, err
+		return ds.ImportCategory{}, notFound(err, ErrNoDraft)
 	}
 	return item, nil
 }
 
-// LikesByUser — сколько категорий отметил пользователь (таблица м-м likes).
-func (r *Repository) LikesByUser(userID uint) (int, error) {
+// HasDraft — есть ли у пользователя черновик.
+func (r *Repository) HasDraft(userID uint) (bool, error) {
 	var count int64
-	err := r.db.Model(&ds.Like{}).Where("user_id = ?", userID).Count(&count).Error
-	return int(count), err
-}
-
-// UserByID — текущий пользователь приложения.
-func (r *Repository) UserByID(id uint) (ds.User, error) {
-	var user ds.User
-	if err := r.db.First(&user, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ds.User{}, ErrNotFound
-		}
-		return ds.User{}, err
-	}
-	return user, nil
+	err := r.db.Model(&ds.ImportCategory{}).
+		Where("status = ? AND creator_id = ?", ds.StatusDraft, userID).
+		Count(&count).Error
+	return count > 0, err
 }
 
 // ==========================================================================
-// Изменение (POST) — через ORM: две кнопки и два статуса
+// Изменение
 // ==========================================================================
 
-// CreateDraft — кнопка «Далее»: создаёт черновик (INSERT через ORM).
-// В черновике только название, фото и видео; даты и описание
-// заполняются на следующем шаге, перед публикацией.
+// CreateDraft — создание услуги: статус «черновик» ставит бэкенд.
+// Второй черновик создать нельзя.
 func (r *Repository) CreateDraft(item *ds.ImportCategory) error {
+	exists, err := r.HasDraft(item.CreatorID)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return ErrDraftExists
+	}
 	item.Status = ds.StatusDraft
 	return r.db.Create(item).Error
 }
 
-// PublishDraft — кнопка «Опубликовать»: записывает поля черновика
-// и меняет статус на «Опубликована» (UPDATE через ORM).
-// Опубликовать можно только свой черновик.
-func (r *Repository) PublishDraft(id uint, userID uint, fields map[string]any) error {
-	fields["status"] = ds.StatusPublished
-
+// PublishDraft — публикация: черновик → опубликована, вместе с полями,
+// которые заполняются перед публикацией. Условие status = 'draft'
+// не даёт опубликовать повторно или «вернуть» удалённую услугу.
+func (r *Repository) PublishDraft(id, userID uint, dateStart, dateEnd time.Time, description *string) error {
 	result := r.db.Model(&ds.ImportCategory{}).
-		Where("id = ? AND status = ? AND creator_id = ?", id, ds.StatusDraft, userID).
-		Updates(fields)
+		Where("id = ? AND creator_id = ? AND status = ?", id, userID, ds.StatusDraft).
+		Updates(map[string]any{
+			"date_start":  dateStart,
+			"date_end":    dateEnd,
+			"description": description,
+			"status":      ds.StatusPublished,
+		})
 	if result.Error != nil {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return ErrNotFound
+		return ErrNoDraft
 	}
 	return nil
 }
 
-// ==========================================================================
-// Логическое удаление — прямым SQL UPDATE через курсор (без ORM)
-// ==========================================================================
-
-// DeleteImportCategory — логическое удаление категории.
-// По заданию выполняется не средствами ORM, а через курсор: берём из GORM
-// «голое» соединение database/sql и выполняем SQL-запрос UPDATE.
-// Запись остаётся в таблице, меняется только статус.
-func (r *Repository) DeleteImportCategory(id uint) error {
-	sqlDB, err := r.db.DB() // соединение database/sql — аналог курсора
-	if err != nil {
-		return err
+// DeleteImportCategory — мягкое удаление: статус «удалена», запись остаётся.
+// Удалить можно только свою услугу (черновик или опубликованную).
+// Чужая, удалённая или несуществующая услуга — ErrNotYours.
+func (r *Repository) DeleteImportCategory(id, userID uint) error {
+	result := r.db.Model(&ds.ImportCategory{}).
+		Where("id = ? AND creator_id = ? AND status <> ?", id, userID, ds.StatusDeleted).
+		Update("status", ds.StatusDeleted)
+	if result.Error != nil {
+		return result.Error
 	}
-
-	res, err := sqlDB.Exec(`
-		UPDATE import_categories
-		   SET status = 'deleted'
-		 WHERE id = $1 AND status <> 'deleted'`, id)
-	if err != nil {
-		return err
-	}
-
-	if n, _ := res.RowsAffected(); n == 0 {
-		return ErrNotFound
+	if result.RowsAffected == 0 {
+		return ErrNotYours
 	}
 	return nil
 }
 
-// ==========================================================================
-// Навигация по ленте
-// ==========================================================================
-
-// FirstImportCategoryID — идентификатор первой категории ленты.
-func (r *Repository) FirstImportCategoryID() uint {
-	items, err := r.ImportCategories(time.Time{})
-	if err != nil || len(items) == 0 {
-		return 0
+// SetLike — like = true ставит лайк, false отменяет. Только для
+// опубликованных услуг. Ответ «успешно» возможен лишь при изменении БД,
+// поэтому повторный лайк и отмена несуществующего лайка — конфликт.
+// Возвращает новое число лайков услуги.
+func (r *Repository) SetLike(userID, categoryID uint, like bool) (int, error) {
+	if _, err := r.PublishedByID(categoryID); err != nil {
+		return 0, err
 	}
-	return items[0].ID
-}
 
-// NextImportCategoryID — идентификатор следующей категории ленты (по кругу).
-func (r *Repository) NextImportCategoryID(id uint) uint {
-	items, err := r.ImportCategories(time.Time{})
-	if err != nil || len(items) == 0 {
-		return 0
-	}
-	for i, item := range items {
-		if item.ID == id {
-			return items[(i+1)%len(items)].ID
+	if like {
+		liked, err := r.IsLiked(userID, categoryID)
+		if err != nil {
+			return 0, err
+		}
+		if liked {
+			return 0, ErrLiked
+		}
+		if err := r.db.Create(&ds.Like{UserID: userID, ImportCategoryID: categoryID}).Error; err != nil {
+			return 0, err
+		}
+	} else {
+		result := r.db.Where("user_id = ? AND import_category_id = ?", userID, categoryID).
+			Delete(&ds.Like{})
+		if result.Error != nil {
+			return 0, result.Error
+		}
+		if result.RowsAffected == 0 {
+			return 0, ErrNotLiked
 		}
 	}
-	return items[0].ID
+
+	var total int64
+	err := r.db.Model(&ds.Like{}).Where("import_category_id = ?", categoryID).Count(&total).Error
+	return int(total), err
 }
 
-// Position — порядковый номер категории в ленте и общее их число.
-func (r *Repository) Position(id uint) (int, int) {
-	items, err := r.ImportCategories(time.Time{})
-	if err != nil {
-		return 0, 0
-	}
-	for i, item := range items {
-		if item.ID == id {
-			return i + 1, len(items)
-		}
-	}
-	return 0, len(items)
-}
-
-// ==========================================================================
-// Вспомогательное
-// ==========================================================================
-
-// fillLikes проставляет количество лайков одним запросом по таблице likes.
-func (r *Repository) fillLikes(items []ds.ImportCategory) {
+// fillLikes проставляет число лайков одним запросом GROUP BY по likes.
+func (r *Repository) fillLikes(items []ds.ImportCategory) error {
 	if len(items) == 0 {
-		return
+		return nil
 	}
-
 	ids := make([]uint, 0, len(items))
 	for _, item := range items {
 		ids = append(ids, item.ID)
@@ -242,7 +204,7 @@ func (r *Repository) fillLikes(items []ds.ImportCategory) {
 		Group("import_category_id").
 		Scan(&rows).Error
 	if err != nil {
-		return
+		return err
 	}
 
 	byID := make(map[uint]int, len(rows))
@@ -252,8 +214,5 @@ func (r *Repository) fillLikes(items []ds.ImportCategory) {
 	for i := range items {
 		items[i].LikesTotal = byID[items[i].ID]
 	}
-}
-
-func (r *Repository) mediaURL(prefix, slug, ext string) string {
-	return fmt.Sprintf("%s/%s/%s.%s", r.mediaBase, prefix, slug, ext)
+	return nil
 }
