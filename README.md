@@ -8,5 +8,6 @@
 |---|---|---|
 | [`lab1`](../../tree/lab1) | ЛР1 | Go + Gin, шаблоны (MVT), MinIO, три страницы: лента, добавление, каталог |
 | [`lab2`](../../tree/lab2) | ЛР2 | PostgreSQL + GORM + Adminer, таблицы users / import_categories / likes, 3 GET + 3 POST, логическое удаление через SQL |
+| [`lab3`](../../tree/lab3) | ЛР3 | REST-веб-сервис на Go + Gin + GORM: JSON API, MinIO для изображений и видео, 10 основных методов, коллекция Postman |
 
-Переключиться на ветку: `git checkout lab2`.
+Переключиться на ветку: `git checkout lab3`.
