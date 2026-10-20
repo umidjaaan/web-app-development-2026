@@ -1,4 +1,4 @@
-# ER-диаграмма базы данных «Амфора» (ЛР2)
+# ER-диаграмма базы данных «Амфора» (ЛР3)
 
 ![ER-диаграмма](er.png)
 
@@ -22,13 +22,18 @@
 |---|---|---|---|
 | id | bigint | PK | — |
 | title | varchar(128) | NOT NULL | создание (POST) |
-| image | varchar(256) | NULL | POST: сервер пишет имя загруженного файла |
-| video | varchar(256) | NULL | POST: сервер пишет имя загруженного файла |
+| image | varchar(256) | NOT NULL, DEFAULT '' | POST: имя загруженного файла (нет файла — пустая строка) |
+| video | varchar(256) | NOT NULL, DEFAULT '' | POST: имя загруженного файла (нет файла — пустая строка) |
 | date_start | date | NULL, INDEX | публикация (PUT) |
 | date_end | date | NULL | публикация (PUT) |
 | description | text | NULL | публикация (PUT) |
 | status | varchar(16) | NOT NULL, DEFAULT 'draft' | draft → published → deleted |
+| formed_at | timestamp | NULL | публикация (PUT): момент публикации, ставит сервер |
 | creator_id | bigint | NOT NULL, FK → users.id | на сервере (singleton) |
+
+Необязательных (NULL) полей ровно четыре: **date_start**, **date_end**,
+**description** и **formed_at**. На шаге «Далее» (POST) вводятся только три поля:
+title, image, video; остальные три (date_start, date_end, description) — при публикации.
 
 Поля по теме — только два: **date_start** и **date_end** (дата начала и дата конца
 бытования типа). Фильтрация в плитке — по date_start.

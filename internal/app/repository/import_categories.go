@@ -121,6 +121,7 @@ func (r *Repository) PublishDraft(id, userID uint, dateStart, dateEnd time.Time,
 			"date_start":  dateStart,
 			"date_end":    dateEnd,
 			"description": description,
+			"formed_at":   time.Now(), // момент публикации
 			"status":      ds.StatusPublished,
 		})
 	if result.Error != nil {
@@ -132,7 +133,7 @@ func (r *Repository) PublishDraft(id, userID uint, dateStart, dateEnd time.Time,
 	return nil
 }
 
-// DeleteImportCategory — мягкое удаление: статус «удалена», запись остаётся.
+// DeleteImportCategory — мягкое удаление: статус «удалена», запись остаётся.КУРСОР
 // Удалить можно только свою услугу (черновик или опубликованную).
 // Чужая, удалённая или несуществующая услуга — ErrNotYours.
 func (r *Repository) DeleteImportCategory(id, userID uint) error {

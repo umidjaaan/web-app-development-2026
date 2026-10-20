@@ -69,15 +69,15 @@ func (r *Repository) EnsureBucket() error {
 }
 
 // ImageURL и VideoURL — публичные ссылки на файлы по их именам из БД.
-// Нет файла (NULL) — нет ссылки: клиент покажет заглушку.
-func (r *Repository) ImageURL(name *string) *string { return r.fileURL(Image, name) }
-func (r *Repository) VideoURL(name *string) *string { return r.fileURL(Video, name) }
+// Нет файла (пустая строка) — нет ссылки: клиент покажет заглушку.
+func (r *Repository) ImageURL(name string) *string { return r.fileURL(Image, name) }
+func (r *Repository) VideoURL(name string) *string { return r.fileURL(Video, name) }
 
-func (r *Repository) fileURL(kind FileKind, name *string) *string {
-	if name == nil || *name == "" {
+func (r *Repository) fileURL(kind FileKind, name string) *string {
+	if name == "" {
 		return nil
 	}
-	url := r.mediaBase + "/" + kind.Folder + "/" + *name
+	url := r.mediaBase + "/" + kind.Folder + "/" + name
 	return &url
 }
 
@@ -125,11 +125,11 @@ func (r *Repository) UploadFile(kind FileKind, title string, header *multipart.F
 }
 
 // RemoveFile удаляет файл из MinIO (если запись в БД не создалась).
-func (r *Repository) RemoveFile(kind FileKind, name *string) {
-	if name == nil {
+func (r *Repository) RemoveFile(kind FileKind, name string) {
+	if name == "" {
 		return
 	}
-	_ = r.minio.RemoveObject(context.Background(), r.bucket, kind.Folder+"/"+*name, minio.RemoveObjectOptions{})
+	_ = r.minio.RemoveObject(context.Background(), r.bucket, kind.Folder+"/"+name, minio.RemoveObjectOptions{})
 }
 
 // fileName — имя файла на латинице: транслит названия услуги

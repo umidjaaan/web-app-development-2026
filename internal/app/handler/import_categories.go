@@ -16,7 +16,7 @@ import (
 )
 
 // systemFields — поля, которые вычисляются на бэкенде: с клиента их не принимаем.
-var systemFields = []string{"id", "status", "creator_id", "is_moderator"}
+var systemFields = []string{"id", "status", "creator_id", "formed_at", "is_moderator"}
 
 // maxCreateBody — предел тела запроса на создание: видео 50 МБ + фото 10 МБ + поля.
 const maxCreateBody = 61 << 20
@@ -113,7 +113,8 @@ func (h *Handler) GetDraft(c *gin.Context) {
 // CreateImportCategory — POST /api/import_categories (multipart/form-data)
 //
 //	title — название (обязательно);
-//	image — файл изображения, video — файл короткого видео (необязательно).
+//	image — файл изображения, video — файл короткого видео (файл можно не
+//	выбирать: тогда в поле пишется пустая строка, клиент покажет заглушку).
 //
 // Создаёт черновик текущего пользователя. Файлы уходят в MinIO под именами
 // на латинице, в поля image и video таблицы пишутся эти имена.
@@ -183,20 +184,16 @@ func (h *Handler) CreateImportCategory(c *gin.Context) {
 }
 
 // upload загружает файл из поля формы в MinIO и возвращает его имя.
-// Файл не выбран — не ошибка: поле останется NULL.
-func (h *Handler) upload(c *gin.Context, field string, kind repository.FileKind, title string) (*string, error) {
+// Файл не выбран — не ошибка: в поле запишется пустая строка.
+func (h *Handler) upload(c *gin.Context, field string, kind repository.FileKind, title string) (string, error) {
 	header, err := c.FormFile(field)
 	if errors.Is(err, http.ErrMissingFile) {
-		return nil, nil
+		return "", nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("%w: поле %s: %v", repository.ErrBadFile, field, err)
+		return "", fmt.Errorf("%w: поле %s: %v", repository.ErrBadFile, field, err)
 	}
-	name, err := h.Repository.UploadFile(kind, title, header)
-	if err != nil {
-		return nil, err
-	}
-	return &name, nil
+	return h.Repository.UploadFile(kind, title, header)
 }
 
 // PublishImportCategory — PUT /api/import_categories/:id/publish

@@ -5,8 +5,8 @@ import "rip/lab1/internal/app/ds"
 // URLBuilder собирает ссылки на файлы MinIO по именам из БД
 // (реализован репозиторием).
 type URLBuilder interface {
-	ImageURL(name *string) *string
-	VideoURL(name *string) *string
+	ImageURL(name string) *string
+	VideoURL(name string) *string
 }
 
 // ---------------------------------------------------------------- ответы
@@ -53,6 +53,7 @@ type DraftSerializer struct {
 	DateStart   *string        `json:"date_start"`
 	DateEnd     *string        `json:"date_end"`
 	Description *string        `json:"description"`
+	FormedAt    *string        `json:"formed_at"` // NULL у черновика
 	Status      ds.Status      `json:"status"`
 	Creator     UserSerializer `json:"creator"`
 }
@@ -120,13 +121,14 @@ func ToDraft(c ds.ImportCategory, urls URLBuilder) DraftSerializer {
 	return DraftSerializer{
 		ID:          c.ID,
 		Title:       c.Title,
-		Image:       c.Image,
+		Image:       ds.Optional(c.Image),
 		ImageURL:    urls.ImageURL(c.Image),
-		Video:       c.Video,
+		Video:       ds.Optional(c.Video),
 		VideoURL:    urls.VideoURL(c.Video),
 		DateStart:   c.DateStartString(),
 		DateEnd:     c.DateEndString(),
 		Description: c.Description,
+		FormedAt:    c.FormedAtString(),
 		Status:      c.Status,
 		Creator:     toCreator(c),
 	}

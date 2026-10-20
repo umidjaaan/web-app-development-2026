@@ -218,17 +218,23 @@ func (r *Repository) Seed() error {
 				creator = 2
 			}
 
-			start, end := seed.DateStart, seed.DateEnd
 			item := ds.ImportCategory{
-				ID:          seed.ID,
-				Title:       seed.Title,
-				Image:       ds.Optional(seed.Slug + ".jpg"), // файл img/<slug>.jpg в MinIO
-				Video:       ds.Optional(seed.Slug + ".mp4"), // файл video/<slug>.mp4 в MinIO
-				DateStart:   &start,
-				DateEnd:     &end,
-				Description: ds.Optional(seed.Description),
-				Status:      seed.Status,
-				CreatorID:   creator,
+				ID:        seed.ID,
+				Title:     seed.Title,
+				Image:     seed.Slug + ".jpg", // файл img/<slug>.jpg в MinIO
+				Video:     seed.Slug + ".mp4", // файл video/<slug>.mp4 в MinIO
+				Status:    seed.Status,
+				CreatorID: creator,
+			}
+			// Четыре необязательных поля заполняются только при публикации,
+			// поэтому у черновика они остаются NULL.
+			if seed.Status != ds.StatusDraft {
+				start, end := seed.DateStart, seed.DateEnd
+				formed := time.Now()
+				item.DateStart = &start
+				item.DateEnd = &end
+				item.Description = ds.Optional(seed.Description)
+				item.FormedAt = &formed
 			}
 			if err := tx.Create(&item).Error; err != nil {
 				return fmt.Errorf("категория %s: %w", seed.Slug, err)

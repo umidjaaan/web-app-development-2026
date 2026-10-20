@@ -139,12 +139,13 @@ ER-диаграмма — [docs/er.png](docs/er.png), исходник — [docs
 |---|---|---|---|
 | id | bigint | PK | сервер |
 | title | varchar(128) | NOT NULL | клиент, POST |
-| image | varchar(256) | NULL | сервер: имя загруженного файла |
-| video | varchar(256) | NULL | сервер: имя загруженного файла |
+| image | varchar(256) | NOT NULL, DEFAULT '' | сервер: имя загруженного файла (нет файла — '') |
+| video | varchar(256) | NOT NULL, DEFAULT '' | сервер: имя загруженного файла (нет файла — '') |
 | date_start | date | NULL, INDEX | клиент, PUT publish |
 | date_end | date | NULL | клиент, PUT publish |
 | description | text | NULL | клиент, PUT publish |
 | status | varchar(16) | NOT NULL: `draft` / `published` / `deleted` | сервер |
+| formed_at | timestamp | NULL | сервер, PUT publish: момент публикации |
 | creator_id | bigint | NOT NULL, FK → users.id | сервер (singleton) |
 
 Частичный уникальный индекс `uniq_draft_per_user (creator_id) WHERE status = 'draft'`.

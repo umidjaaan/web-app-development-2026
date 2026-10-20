@@ -40,31 +40,35 @@ const DateLayout = "2006-01-02"
 
 // ImportCategory — услуга: категория импортных находок. Таблица import_categories.
 //
-// При создании (POST) заполняются название (обязательно), фото и видео
-// (необязательно) — так появляется черновик. При публикации (PUT)
-// заполняются два поля по теме — дата начала и дата конца — и описание.
-// Необязательные поля в таблице допускают NULL.
+// Шаг «Далее» (POST) — ровно три входа: название, фото и видео.
+// Публикация (PUT) — ещё три: два поля по теме (дата начала и дата конца)
+// и описание.
+//
+// Необязательных (NULL) полей в таблице ровно четыре: date_start, date_end,
+// description и formed_at. У черновика они пустые и появляются только при
+// публикации. Необязательные поля — указатели: nil попадает в таблицу как NULL.
 //
 // Image и Video — имена файлов в MinIO (например knidskie-amfory-3f9a0c.jpg),
-// сами файлы лежат в бакете в папках img/ и video/. Необязательные поля —
-// указатели: пустое значение попадает в таблицу как NULL.
+// сами файлы лежат в бакете в папках img/ и video/. Поля NOT NULL:
+// файл не выбран — пустая строка, клиент покажет заглушку.
 type ImportCategory struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 
-	Title string  `gorm:"size:128;not null" json:"title"` // обязательно
-	Image *string `gorm:"size:256" json:"image"`          // имя файла, NULL
-	Video *string `gorm:"size:256" json:"video"`          // имя файла, NULL
+	Title string `gorm:"size:128;not null" json:"title"`            // обязательно
+	Image string `gorm:"size:256;not null;default:''" json:"image"` // имя файла или ""
+	Video string `gorm:"size:256;not null;default:''" json:"video"` // имя файла или ""
 
 	// Два поля по теме, у черновика пустые (NULL). Фильтр списка — по DateStart.
 	DateStart *time.Time `gorm:"type:date;index" json:"date_start"`
 	DateEnd   *time.Time `gorm:"type:date" json:"date_end"`
 
-	Description *string `gorm:"type:text" json:"description"` // NULL
+	Description *string `gorm:"type:text" json:"description"` // NULL до публикации
 
 	// Системные поля: задаются только на бэкенде.
-	Status    Status `gorm:"size:16;not null;default:draft;index" json:"status"`
-	CreatorID uint   `gorm:"not null;index" json:"creator_id"`
-	Creator   *User  `gorm:"foreignKey:CreatorID" json:"-"`
+	Status    Status     `gorm:"size:16;not null;default:draft;index" json:"status"`
+	FormedAt  *time.Time `gorm:"type:timestamp" json:"formed_at"` // момент публикации, NULL у черновика
+	CreatorID uint       `gorm:"not null;index" json:"creator_id"`
+	Creator   *User      `gorm:"foreignKey:CreatorID" json:"-"`
 
 	Likes []Like `gorm:"foreignKey:ImportCategoryID" json:"-"`
 
@@ -91,6 +95,15 @@ func (c ImportCategory) PeriodLabel() *string {
 // DateStartString и DateEndString — даты в формате API (nil, если не заполнены).
 func (c ImportCategory) DateStartString() *string { return dateString(c.DateStart) }
 func (c ImportCategory) DateEndString() *string   { return dateString(c.DateEnd) }
+
+// FormedAtString — момент публикации в формате RFC 3339 (nil у черновика).
+func (c ImportCategory) FormedAtString() *string {
+	if c.FormedAt == nil {
+		return nil
+	}
+	s := c.FormedAt.Format(time.RFC3339)
+	return &s
+}
 
 func year(t *time.Time) int {
 	if t == nil {
