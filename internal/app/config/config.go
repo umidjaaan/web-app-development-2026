@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"os"
 	"strings"
+	"time"
 )
 
 // Config — настройки запуска приложения.
@@ -20,6 +21,14 @@ type Config struct {
 	// MediaBaseURL — публичный адрес бакета: из него собираются ссылки
 	// на файлы в ответах API (в БД хранятся только имена файлов).
 	MediaBaseURL string // MEDIA_BASE_URL
+
+	// JWT — авторизация (ЛР4).
+	JWTSecret string        // JWT_SECRET: секрет для подписи токенов
+	JWTTTL    time.Duration // JWT_TTL: срок действия токена, например 1h
+
+	// Redis — чёрный список токенов после выхода.
+	RedisAddr     string // REDIS_ADDR, например localhost:6379
+	RedisPassword string // REDIS_PASSWORD
 }
 
 // Load читает .env (если он есть) и собирает конфигурацию.
@@ -33,7 +42,19 @@ func Load() Config {
 		MinioSecretKey: envOr("MINIO_SECRET_KEY", "minioadmin"),
 		MinioBucket:    envOr("MINIO_BUCKET", "import-categories"),
 		MediaBaseURL:   envOr("MEDIA_BASE_URL", "http://localhost:9000/import-categories"),
+		JWTSecret:      envOr("JWT_SECRET", "amphora-dev-secret"),
+		JWTTTL:         durationOr("JWT_TTL", time.Hour),
+		RedisAddr:      envOr("REDIS_ADDR", "localhost:6379"),
+		RedisPassword:  envOr("REDIS_PASSWORD", "rip"),
 	}
+}
+
+// durationOr читает длительность вида 1h, 30m (значение по умолчанию при ошибке).
+func durationOr(key string, fallback time.Duration) time.Duration {
+	if d, err := time.ParseDuration(os.Getenv(key)); err == nil && d > 0 {
+		return d
+	}
+	return fallback
 }
 
 // LoadEnvFile подхватывает переменные из файла .env.

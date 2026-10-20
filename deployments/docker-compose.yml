@@ -8,6 +8,7 @@
 # S3 API Minio: http://localhost:9000
 # Веб-консоль : http://localhost:9001  (minioadmin / minioadmin)
 # Бакет       : import-categories  (публичный на чтение)
+# Redis       : localhost:6379  (пароль rip) — чёрный список JWT
 
 services:
   postgres:
@@ -58,6 +59,16 @@ services:
       timeout: 5s
       retries: 12
 
+  redis:
+    image: redis:7.2-alpine
+    container_name: rip-redis
+    # --requirepass: пароль, --save 20 1: сохранять данные на диск
+    command: redis-server --requirepass rip --save 20 1 --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
   # Одноразовый контейнер: создаёт бакет, открывает его на чтение
   # и заливает медиа из папки media/.
   minio-init:
@@ -81,3 +92,4 @@ services:
 volumes:
   pg-data:
   minio-data:
+  redis-data:

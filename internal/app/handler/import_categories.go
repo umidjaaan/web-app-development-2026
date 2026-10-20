@@ -24,6 +24,15 @@ const maxCreateBody = 61 << 20
 // GetImportCategories — GET /api/import_categories?date_start=0500-01-01
 // Список опубликованных услуг с фильтром по дате начала.
 // is_creator = 1, если создатель услуги — текущий пользователь.
+//
+//	@Summary		Список услуг
+//	@Description	Опубликованные категории импорта с фильтром по дате начала. Доступен гостю; с токеном is_creator = 1 у услуг текущего пользователя.
+//	@Tags			import_categories
+//	@Produce		json
+//	@Param			date_start	query		string	false	"Дата начала, ГГГГ-ММ-ДД (год до н. э.)"	example(0500-01-01)
+//	@Success		200			{object}	serializer.Response{data=[]serializer.ImportCategorySerializer}
+//	@Failure		400			{object}	serializer.Response
+//	@Router			/api/import_categories [get]
 func (h *Handler) GetImportCategories(c *gin.Context) {
 	var dateStart time.Time
 	if raw := c.Query("date_start"); raw != "" {
@@ -41,7 +50,7 @@ func (h *Handler) GetImportCategories(c *gin.Context) {
 		return
 	}
 
-	userID := auth.CurrentUserID()
+	userID := auth.CurrentUserID(c)
 	result := make([]serializer.ImportCategorySerializer, 0, len(items))
 	for _, item := range items {
 		result = append(result, serializer.ToImportCategory(item, userID, h.Repository))
@@ -56,6 +65,17 @@ func (h *Handler) GetImportCategories(c *gin.Context) {
 //	GET /api/import_categories/feed?id=3&next=true  — следующая после неё
 //
 // is_liked = 1, если текущий пользователь лайкнул услугу.
+//
+//	@Summary		Лента
+//	@Description	Одна опубликованная услуга ленты. Без id — первая, с id — эта услуга, с id и next=true — следующая. Доступна гостю; с токеном заполняется is_liked.
+//	@Tags			import_categories
+//	@Produce		json
+//	@Param			id		query		int		false	"Ид услуги"
+//	@Param			next	query		bool	false	"true — следующая после id"
+//	@Success		200		{object}	serializer.Response{data=serializer.FeedSerializer}
+//	@Failure		400		{object}	serializer.Response
+//	@Failure		404		{object}	serializer.Response
+//	@Router			/api/import_categories/feed [get]
 func (h *Handler) GetFeed(c *gin.Context) {
 	ids, err := h.Repository.FeedIDs()
 	if err != nil {
@@ -89,7 +109,7 @@ func (h *Handler) GetFeed(c *gin.Context) {
 		h.failRepo(c, err)
 		return
 	}
-	isLiked, err := h.Repository.IsLiked(auth.CurrentUserID(), item.ID)
+	isLiked, err := h.Repository.IsLiked(auth.CurrentUserID(c), item.ID)
 	if err != nil {
 		h.failRepo(c, err)
 		return
@@ -101,8 +121,18 @@ func (h *Handler) GetFeed(c *gin.Context) {
 
 // GetDraft — GET /api/import_categories/draft
 // Черновик текущего пользователя; ид не указывается, черновик один.
+//
+//	@Summary		Черновик
+//	@Description	Черновик текущего пользователя (не больше одного). Нужна авторизация.
+//	@Tags			import_categories
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200	{object}	serializer.Response{data=serializer.DraftSerializer}
+//	@Failure		401	{object}	serializer.Response
+//	@Failure		404	{object}	serializer.Response
+//	@Router			/api/import_categories/draft [get]
 func (h *Handler) GetDraft(c *gin.Context) {
-	draft, err := h.Repository.DraftByUser(auth.CurrentUserID())
+	draft, err := h.Repository.DraftByUser(auth.CurrentUserID(c))
 	if err != nil {
 		h.failRepo(c, err)
 		return
@@ -118,6 +148,21 @@ func (h *Handler) GetDraft(c *gin.Context) {
 //
 // Создаёт черновик текущего пользователя. Файлы уходят в MinIO под именами
 // на латинице, в поля image и video таблицы пишутся эти имена.
+//
+//	@Summary		Добавление услуги (шаг «Далее»)
+//	@Description	Создаёт черновик: название, фото и видео (файлами). Создатель — пользователь из токена. Нужна авторизация.
+//	@Tags			import_categories
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			title	formData	string	true	"Название"
+//	@Param			image	formData	file	false	"Фото: JPG, PNG, WEBP до 10 МБ"
+//	@Param			video	formData	file	false	"Видео: MP4, WEBM до 50 МБ"
+//	@Success		201		{object}	serializer.Response{data=serializer.DraftSerializer}
+//	@Failure		400		{object}	serializer.Response
+//	@Failure		401		{object}	serializer.Response
+//	@Failure		409		{object}	serializer.Response	"Черновик уже есть"
+//	@Router			/api/import_categories [post]
 func (h *Handler) CreateImportCategory(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxCreateBody)
 	if err := c.Request.ParseMultipartForm(8 << 20); err != nil {
@@ -144,7 +189,7 @@ func (h *Handler) CreateImportCategory(c *gin.Context) {
 	}
 
 	// Черновик уже есть — новый не создаём и файлы не загружаем.
-	userID := auth.CurrentUserID()
+	userID := auth.CurrentUserID(c)
 	exists, err := h.Repository.HasDraft(userID)
 	if err != nil {
 		h.failRepo(c, err)
@@ -199,6 +244,20 @@ func (h *Handler) upload(c *gin.Context, field string, kind repository.FileKind,
 // PublishImportCategory — PUT /api/import_categories/:id/publish
 // Тело: {"date_start": "0250-01-01", "date_end": "0050-01-01", "description": "..."}
 // Черновик → опубликована. Только свой черновик; вернуть в черновик нельзя.
+//
+//	@Summary		Публикация услуги
+//	@Description	Черновик → опубликована: два поля по теме и описание. Только свой черновик. Нужна авторизация (гостю 401).
+//	@Tags			import_categories
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		int							true	"Ид черновика"
+//	@Param			body	body		serializer.PublishRequest	true	"Поля публикации"
+//	@Success		200		{object}	serializer.Response{data=serializer.ImportCategorySerializer}
+//	@Failure		400		{object}	serializer.Response
+//	@Failure		401		{object}	serializer.Response
+//	@Failure		404		{object}	serializer.Response
+//	@Router			/api/import_categories/{id}/publish [put]
 func (h *Handler) PublishImportCategory(c *gin.Context) {
 	id, err := parseID(c.Param("id"))
 	if err != nil {
@@ -224,7 +283,7 @@ func (h *Handler) PublishImportCategory(c *gin.Context) {
 		return
 	}
 
-	userID := auth.CurrentUserID()
+	userID := auth.CurrentUserID(c)
 	description := ds.Optional(strings.TrimSpace(req.Description))
 	if err := h.Repository.PublishDraft(id, userID, start, end, description); err != nil {
 		h.failRepo(c, err)
@@ -242,13 +301,25 @@ func (h *Handler) PublishImportCategory(c *gin.Context) {
 
 // DeleteImportCategory — DELETE /api/import_categories/:id
 // Мягкое удаление (status = deleted). Только услуги текущего пользователя.
+//
+//	@Summary		Удаление услуги
+//	@Description	Мягкое удаление (status = deleted). Только свои услуги. Нужна авторизация.
+//	@Tags			import_categories
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		int	true	"Ид услуги"
+//	@Success		200	{object}	serializer.Response
+//	@Failure		400	{object}	serializer.Response
+//	@Failure		401	{object}	serializer.Response
+//	@Failure		404	{object}	serializer.Response
+//	@Router			/api/import_categories/{id} [delete]
 func (h *Handler) DeleteImportCategory(c *gin.Context) {
 	id, err := parseID(c.Param("id"))
 	if err != nil {
 		h.fail(c, http.StatusBadRequest, err)
 		return
 	}
-	if err := h.Repository.DeleteImportCategory(id, auth.CurrentUserID()); err != nil {
+	if err := h.Repository.DeleteImportCategory(id, auth.CurrentUserID(c)); err != nil {
 		h.failRepo(c, err)
 		return
 	}
@@ -258,6 +329,21 @@ func (h *Handler) DeleteImportCategory(c *gin.Context) {
 
 // LikeImportCategory — POST /api/import_categories/:id/like
 // Тело: {"like": 1} — поставить лайк, {"like": 0} — отменить.
+//
+//	@Summary		Лайк
+//	@Description	like = 1 ставит лайк от текущего пользователя, like = 0 отменяет. Нужна авторизация.
+//	@Tags			import_categories
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		int						true	"Ид услуги"
+//	@Param			body	body		serializer.LikeRequest	true	"0 или 1"
+//	@Success		200		{object}	serializer.Response{data=serializer.LikeSerializer}
+//	@Failure		400		{object}	serializer.Response
+//	@Failure		401		{object}	serializer.Response
+//	@Failure		404		{object}	serializer.Response
+//	@Failure		409		{object}	serializer.Response
+//	@Router			/api/import_categories/{id}/like [post]
 func (h *Handler) LikeImportCategory(c *gin.Context) {
 	id, err := parseID(c.Param("id"))
 	if err != nil {
@@ -270,7 +356,7 @@ func (h *Handler) LikeImportCategory(c *gin.Context) {
 		return
 	}
 
-	likes, err := h.Repository.SetLike(auth.CurrentUserID(), id, *req.Like == 1)
+	likes, err := h.Repository.SetLike(auth.CurrentUserID(c), id, *req.Like == 1)
 	if err != nil {
 		h.failRepo(c, err)
 		return

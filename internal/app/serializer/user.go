@@ -20,3 +20,13 @@ type UserRequest struct {
 func ToUser(u ds.User) UserSerializer {
 	return UserSerializer{ID: u.ID, Login: u.Login, IsModerator: u.IsModerator}
 }
+
+// LoginResponse — ответ аутентификации: JWT и пользователь.
+// Токен передаётся в остальных запросах заголовком
+// «Authorization: Bearer <access_token>».
+type LoginResponse struct {
+	AccessToken string         `json:"access_token"`
+	TokenType   string         `json:"token_type"` // всегда Bearer
+	ExpiresIn   int            `json:"expires_in"` // срок действия, секунды
+	User        UserSerializer `json:"user"`
+}

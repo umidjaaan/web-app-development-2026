@@ -2,8 +2,8 @@ package ds
 
 // User — пользователь. Таблица users.
 //
-// Пароль не попадает в JSON (json:"-"). До ЛР4 он хранится как есть,
-// хеширование появится вместе с авторизацией.
+// Пароль не попадает в JSON (json:"-"). В таблице хранится не сам пароль,
+// а его хеш bcrypt (60 символов).
 type User struct {
 	ID          uint   `gorm:"primaryKey" json:"id"`
 	Login       string `gorm:"size:64;uniqueIndex;not null" json:"login"`

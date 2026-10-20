@@ -6,6 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"rip/lab1/internal/app/auth"
 	"rip/lab1/internal/app/ds"
 )
 
@@ -23,7 +24,8 @@ type seedCategory struct {
 	Status      ds.Status
 }
 
-// seedUsers — пользователи приложения. Пароли до ЛР4 хранятся как есть.
+// seedUsers — пользователи приложения. Пароль у всех rip2026; в таблицу
+// попадает его хеш bcrypt (см. Seed).
 var seedUsers = []ds.User{
 	{ID: 1, Login: "umid", Password: "rip2026", IsModerator: true},
 	{ID: 2, Login: "anna", Password: "rip2026"},
@@ -206,6 +208,13 @@ func (r *Repository) Seed() error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		users := make([]ds.User, len(seedUsers))
 		copy(users, seedUsers)
+		for i := range users {
+			hash, err := auth.HashPassword(users[i].Password)
+			if err != nil {
+				return fmt.Errorf("хеш пароля: %w", err)
+			}
+			users[i].Password = hash
+		}
 		if err := tx.Create(&users).Error; err != nil {
 			return fmt.Errorf("пользователи: %w", err)
 		}

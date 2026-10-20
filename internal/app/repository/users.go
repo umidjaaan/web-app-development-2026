@@ -15,3 +15,10 @@ func (r *Repository) CreateUser(user *ds.User) error {
 	user.IsModerator = false
 	return r.db.Create(user).Error
 }
+
+// UserByLogin — пользователь по логину (для входа).
+func (r *Repository) UserByLogin(login string) (ds.User, error) {
+	var user ds.User
+	err := r.db.Where("login = ?", login).First(&user).Error
+	return user, notFound(err, ErrUserNotFound)
+}

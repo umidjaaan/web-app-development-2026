@@ -12,14 +12,15 @@ import (
 
 // Ошибки бизнес-логики: обработчики превращают их в HTTP-коды.
 var (
-	ErrNotFound    = errors.New("услуга не найдена")
-	ErrNotYours    = errors.New("услуга не найдена среди услуг текущего пользователя")
-	ErrNoDraft     = errors.New("черновик не найден")
-	ErrDraftExists = errors.New("у пользователя уже есть черновик")
-	ErrLiked       = errors.New("лайк уже поставлен")
-	ErrNotLiked    = errors.New("лайк не был поставлен")
-	ErrLoginTaken  = errors.New("логин уже занят")
-	ErrBadFile     = errors.New("недопустимый файл")
+	ErrNotFound     = errors.New("услуга не найдена")
+	ErrNotYours     = errors.New("услуга не найдена среди услуг текущего пользователя")
+	ErrNoDraft      = errors.New("черновик не найден")
+	ErrDraftExists  = errors.New("у пользователя уже есть черновик")
+	ErrLiked        = errors.New("лайк уже поставлен")
+	ErrNotLiked     = errors.New("лайк не был поставлен")
+	ErrLoginTaken   = errors.New("логин уже занят")
+	ErrUserNotFound = errors.New("пользователь не найден")
+	ErrBadFile      = errors.New("недопустимый файл")
 )
 
 // Repository — доступ к таблицам users, import_categories, likes и к MinIO.

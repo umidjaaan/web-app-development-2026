@@ -3,16 +3,24 @@
 //   - «пользователь» — /api/users            (UsersDomain).
 //
 // Все ответы — JSON вида {"status": "success" | "fail", "data": ..., "message": ...}.
+//
+// Авторизация (ЛР4): гостю доступны только методы чтения (список и лента),
+// методы создателя требуют JWT в заголовке Authorization. Описание методов —
+// в Swagger: http://localhost:8080/swagger/index.html
 package handler
 
 import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
+	"rip/lab1/internal/app/redis"
 	"rip/lab1/internal/app/repository"
 	"rip/lab1/internal/app/serializer"
 )
@@ -31,13 +39,16 @@ type ImportCategoriesDomain interface {
 // UsersDomain — домен «пользователь», адреса /api/users.
 type UsersDomain interface {
 	Register(c *gin.Context) // POST /api/users/register
-	Login(c *gin.Context)    // POST /api/users/login  (заглушка до ЛР4)
-	Logout(c *gin.Context)   // POST /api/users/logout (заглушка до ЛР4)
+	Login(c *gin.Context)    // POST /api/users/login  — выдаёт JWT
+	Logout(c *gin.Context)   // POST /api/users/logout — токен в blacklist Redis
 }
 
 // Handler реализует оба домена.
 type Handler struct {
 	Repository *repository.Repository
+	Redis      *redis.Client // чёрный список токенов
+	JWTSecret  []byte        // секрет подписи JWT
+	JWTTTL     time.Duration // срок действия JWT
 	Logger     *logrus.Logger
 }
 
@@ -48,27 +59,42 @@ var (
 )
 
 // New создаёт обработчик.
-func New(repo *repository.Repository, logger *logrus.Logger) *Handler {
-	return &Handler{Repository: repo, Logger: logger}
+func New(repo *repository.Repository, redisClient *redis.Client, jwtSecret string, jwtTTL time.Duration, logger *logrus.Logger) *Handler {
+	return &Handler{
+		Repository: repo,
+		Redis:      redisClient,
+		JWTSecret:  []byte(jwtSecret),
+		JWTTTL:     jwtTTL,
+		Logger:     logger,
+	}
 }
 
 // RegisterHandler описывает маршруты API. Все адреса начинаются с /api.
+//
+//	guest   — middleware WithAuthCheck(false): метод доступен и гостю;
+//	creator — middleware WithAuthCheck(true): нужен действующий JWT, иначе 401.
 func (h *Handler) RegisterHandler(router *gin.Engine) {
+	guest := h.WithAuthCheck(false)
+	creator := h.WithAuthCheck(true)
+
 	api := router.Group("/api")
 
 	categories := api.Group("/import_categories")
-	categories.GET("", h.GetImportCategories)
-	categories.GET("/feed", h.GetFeed)
-	categories.GET("/draft", h.GetDraft)
-	categories.POST("", h.CreateImportCategory)
-	categories.PUT("/:id/publish", h.PublishImportCategory)
-	categories.DELETE("/:id", h.DeleteImportCategory)
-	categories.POST("/:id/like", h.LikeImportCategory)
+	categories.GET("", guest, h.GetImportCategories)
+	categories.GET("/feed", guest, h.GetFeed)
+	categories.GET("/draft", creator, h.GetDraft)
+	categories.POST("", creator, h.CreateImportCategory)
+	categories.PUT("/:id/publish", creator, h.PublishImportCategory)
+	categories.DELETE("/:id", creator, h.DeleteImportCategory)
+	categories.POST("/:id/like", creator, h.LikeImportCategory)
 
 	users := api.Group("/users")
 	users.POST("/register", h.Register)
 	users.POST("/login", h.Login)
-	users.POST("/logout", h.Logout)
+	users.POST("/logout", creator, h.Logout)
+
+	// Swagger UI: http://localhost:8080/swagger/index.html
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
 
 // ---------------------------------------------------------------- ответы

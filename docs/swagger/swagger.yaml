@@ -1,0 +1,558 @@
+basePath: /
+definitions:
+  ds.Status:
+    enum:
+    - draft
+    - published
+    - deleted
+    type: string
+    x-enum-varnames:
+    - StatusDraft
+    - StatusPublished
+    - StatusDeleted
+  serializer.DraftSerializer:
+    properties:
+      creator:
+        $ref: '#/definitions/serializer.UserSerializer'
+      date_end:
+        type: string
+      date_start:
+        type: string
+      description:
+        type: string
+      formed_at:
+        description: NULL у черновика
+        type: string
+      id:
+        type: integer
+      image:
+        description: имя файла в MinIO
+        type: string
+      image_url:
+        type: string
+      status:
+        $ref: '#/definitions/ds.Status'
+      title:
+        type: string
+      video:
+        description: имя файла в MinIO
+        type: string
+      video_url:
+        type: string
+    type: object
+  serializer.FeedSerializer:
+    properties:
+      creator:
+        $ref: '#/definitions/serializer.UserSerializer'
+      date_end:
+        type: string
+      date_start:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      is_liked:
+        description: 1 — текущий пользователь лайкнул услугу
+        type: integer
+      likes:
+        type: integer
+      next_id:
+        description: ид следующей услуги
+        type: integer
+      period:
+        type: string
+      position:
+        description: номер услуги в ленте
+        type: integer
+      title:
+        type: string
+      total:
+        description: всего услуг в ленте
+        type: integer
+      video_url:
+        type: string
+    type: object
+  serializer.ImportCategorySerializer:
+    properties:
+      date_end:
+        type: string
+      date_start:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      is_creator:
+        description: 1 — создатель услуги = текущий пользователь
+        type: integer
+      likes:
+        type: integer
+      period:
+        type: string
+      title:
+        type: string
+    type: object
+  serializer.LikeRequest:
+    properties:
+      like:
+        enum:
+        - 0
+        - 1
+        type: integer
+    required:
+    - like
+    type: object
+  serializer.LikeSerializer:
+    properties:
+      import_category_id:
+        type: integer
+      is_liked:
+        type: integer
+      likes:
+        type: integer
+    type: object
+  serializer.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        description: срок действия, секунды
+        type: integer
+      token_type:
+        description: всегда Bearer
+        type: string
+      user:
+        $ref: '#/definitions/serializer.UserSerializer'
+    type: object
+  serializer.PublishRequest:
+    properties:
+      date_end:
+        type: string
+      date_start:
+        type: string
+      description:
+        type: string
+    required:
+    - date_end
+    - date_start
+    type: object
+  serializer.Response:
+    properties:
+      data: {}
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  serializer.UserRequest:
+    properties:
+      login:
+        maxLength: 64
+        minLength: 3
+        type: string
+      password:
+        maxLength: 128
+        minLength: 6
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  serializer.UserSerializer:
+    properties:
+      id:
+        type: integer
+      is_moderator:
+        type: boolean
+      login:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: Солижонов Умид, ИУ5
+  description: |-
+    Оценка торговых связей по статистике импортных находок: категории импорта (услуги), черновик, публикация, лента и лайки.
+    Гостю доступно только чтение (список и лента). Методы создателя требуют JWT: выполните POST /api/users/login, нажмите Authorize и вставьте access_token.
+  title: Амфора API
+  version: "1.0"
+paths:
+  /api/import_categories:
+    get:
+      description: Опубликованные категории импорта с фильтром по дате начала. Доступен
+        гостю; с токеном is_creator = 1 у услуг текущего пользователя.
+      parameters:
+      - description: Дата начала, ГГГГ-ММ-ДД (год до н. э.)
+        example: "0500-01-01"
+        in: query
+        name: date_start
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/serializer.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/serializer.ImportCategorySerializer'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/serializer.Response'
+      summary: Список услуг
+      tags:
+      - import_categories
+    post:
+      consumes:
+      - multipart/form-data
+      description: 'Создаёт черновик: название, фото и видео (файлами). Создатель
+        — пользователь из токена. Нужна авторизация.'
+      parameters:
+      - description: Название
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: 'Фото: JPG, PNG, WEBP до 10 МБ'
+        in: formData
+        name: image
+        type: file
+      - description: 'Видео: MP4, WEBM до 50 МБ'
+        in: formData
+        name: video
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/serializer.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/serializer.DraftSerializer'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "409":
+          description: Черновик уже есть
+          schema:
+            $ref: '#/definitions/serializer.Response'
+      security:
+      - BearerAuth: []
+      summary: Добавление услуги (шаг «Далее»)
+      tags:
+      - import_categories
+  /api/import_categories/{id}:
+    delete:
+      description: Мягкое удаление (status = deleted). Только свои услуги. Нужна авторизация.
+      parameters:
+      - description: Ид услуги
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/serializer.Response'
+      security:
+      - BearerAuth: []
+      summary: Удаление услуги
+      tags:
+      - import_categories
+  /api/import_categories/{id}/like:
+    post:
+      consumes:
+      - application/json
+      description: like = 1 ставит лайк от текущего пользователя, like = 0 отменяет.
+        Нужна авторизация.
+      parameters:
+      - description: Ид услуги
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 0 или 1
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/serializer.LikeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/serializer.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/serializer.LikeSerializer'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/serializer.Response'
+      security:
+      - BearerAuth: []
+      summary: Лайк
+      tags:
+      - import_categories
+  /api/import_categories/{id}/publish:
+    put:
+      consumes:
+      - application/json
+      description: 'Черновик → опубликована: два поля по теме и описание. Только свой
+        черновик. Нужна авторизация (гостю 401).'
+      parameters:
+      - description: Ид черновика
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Поля публикации
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/serializer.PublishRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/serializer.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/serializer.ImportCategorySerializer'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/serializer.Response'
+      security:
+      - BearerAuth: []
+      summary: Публикация услуги
+      tags:
+      - import_categories
+  /api/import_categories/draft:
+    get:
+      description: Черновик текущего пользователя (не больше одного). Нужна авторизация.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/serializer.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/serializer.DraftSerializer'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/serializer.Response'
+      security:
+      - BearerAuth: []
+      summary: Черновик
+      tags:
+      - import_categories
+  /api/import_categories/feed:
+    get:
+      description: Одна опубликованная услуга ленты. Без id — первая, с id — эта услуга,
+        с id и next=true — следующая. Доступна гостю; с токеном заполняется is_liked.
+      parameters:
+      - description: Ид услуги
+        in: query
+        name: id
+        type: integer
+      - description: true — следующая после id
+        in: query
+        name: next
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/serializer.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/serializer.FeedSerializer'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/serializer.Response'
+      summary: Лента
+      tags:
+      - import_categories
+  /api/users/login:
+    post:
+      consumes:
+      - application/json
+      description: 'Проверяет логин и пароль и выдаёт JWT. Токен передаётся в остальных
+        запросах заголовком Authorization: Bearer <токен>.'
+      parameters:
+      - description: Логин и пароль
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/serializer.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/serializer.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/serializer.LoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "401":
+          description: Неверный логин или пароль
+          schema:
+            $ref: '#/definitions/serializer.Response'
+      summary: Аутентификация
+      tags:
+      - users
+  /api/users/logout:
+    post:
+      description: 'Кладёт текущий JWT в чёрный список Redis до конца срока его действия:
+        после этого токен не принимается.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "401":
+          description: Нет токена или токен недействителен
+          schema:
+            $ref: '#/definitions/serializer.Response'
+      security:
+      - BearerAuth: []
+      summary: Деавторизация
+      tags:
+      - users
+  /api/users/register:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт пользователя. Пароль хранится в виде хеша bcrypt. is_moderator
+        с клиента не принимается.
+      parameters:
+      - description: Логин и пароль
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/serializer.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/serializer.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/serializer.UserSerializer'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/serializer.Response'
+        "409":
+          description: Логин уже занят
+          schema:
+            $ref: '#/definitions/serializer.Response'
+      summary: Регистрация пользователя
+      tags:
+      - users
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    description: JWT из ответа /api/users/login. Можно вставить с префиксом «Bearer
+      » или без него.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

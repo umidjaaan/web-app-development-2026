@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "Амфора — ЛР3 (REST API)",
+    "name": "Амфора — ЛР4 (JWT, Redis)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Веб-сервис «Амфора». Пользователь-создатель зафиксирован на бэкенде: auth.CurrentUserID() = 1."
+    "description": "Веб-сервис «Амфора». Авторизация по JWT: сначала выполните «9. Аутентификация» — токен сохранится в переменную token и подставится во все запросы (Authorization: Bearer {{token}}). Список и лента работают и без токена."
   },
   "variable": [
     {
@@ -16,6 +16,10 @@
     {
       "key": "feed_id",
       "value": "1"
+    },
+    {
+      "key": "token",
+      "value": ""
     }
   ],
   "item": [
@@ -292,11 +296,14 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
         {
-          "name": "9. Аутентификация (заглушка)",
+          "name": "9. Аутентификация (выдаёт JWT)",
           "request": {
             "method": "POST",
             "header": [
@@ -316,20 +323,37 @@
                 "login"
               ]
             },
-            "description": "Заглушка до ЛР4.",
+            "description": "Выдаёт JWT. Скрипт Tests сохраняет access_token в переменную коллекции token.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"login\": \"student\",\n  \"password\": \"rip2026\"\n}",
+              "raw": "{\n  \"login\": \"umid\",\n  \"password\": \"rip2026\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "noauth"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('token', pm.response.json().data.access_token);",
+                  "  console.log('JWT сохранён в переменную token');",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "10. Деавторизация (заглушка)",
+          "name": "10. Деавторизация (токен в blacklist Redis)",
           "request": {
             "method": "POST",
             "header": [],
@@ -344,7 +368,266 @@
                 "logout"
               ]
             },
-            "description": "Заглушка до ЛР4."
+            "description": "Кладёт текущий JWT в чёрный список Redis. После этого запросы с ним дают 401 — выполните «9. Аутентификация» снова."
+          }
+        }
+      ]
+    },
+    {
+      "name": "ЛР4: авторизация",
+      "description": "Проверка доступа: гостю — только чтение.",
+      "item": [
+        {
+          "name": "Список услуг гостем (без токена) → 200",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/import_categories?date_start=0600-01-01",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "import_categories"
+              ],
+              "query": [
+                {
+                  "key": "date_start",
+                  "value": "0600-01-01"
+                }
+              ]
+            },
+            "description": "Методы чтения доступны без авторизации.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Лента гостем (без токена) → 200",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/import_categories/feed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "import_categories",
+                "feed"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Публикация гостем → 401",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/import_categories/{{draft_id}}/publish",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "import_categories",
+                "{{draft_id}}",
+                "publish"
+              ]
+            },
+            "description": "Без токена метод создателя недоступен.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date_start\": \"0300-01-01\",\n  \"date_end\": \"0100-01-01\",\n  \"description\": \"Опубликовано гостем — не должно пройти\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Черновик гостем → 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/import_categories/draft",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "import_categories",
+                "draft"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Добавление гостем → 401",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/import_categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "import_categories"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Лайк гостем → 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/import_categories/1/like",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "import_categories",
+                "1",
+                "like"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"like\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Черновик с поддельным токеном → 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/import_categories/draft",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "import_categories",
+                "draft"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "abc.def.ghi",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Вход: неверный пароль → 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "login"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"umid\",\n  \"password\": \"wrong-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Выход без токена → 401",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "logout"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
           }
         }
       ]
@@ -867,5 +1150,15 @@
         }
       ]
     }
-  ]
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
 }
