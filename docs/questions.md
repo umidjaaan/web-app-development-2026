@@ -142,10 +142,13 @@ HTTP поверх TLS (раньше SSL), порт 443. Даёт **шифров�
 задать время жизни (TTL) — по его истечении ключ удаляется сам. Применение: кеш,
 сессии, чёрные списки токенов, очереди, счётчики.
 
-В «Амфоре» Redis хранит **чёрный список JWT**: при выходе выполняется
-`SET amphora.jwt.<токен> <логин> EX <секунд до конца срока токена>`. Middleware перед
-выполнением метода проверяет `GET amphora.jwt.<токен>`: если ключ есть — 401.
-Посмотреть: `docker exec -it rip-redis redis-cli -a rip`, затем `KEYS *`, `GET <ключ>`, `TTL <ключ>`.
+В «Амфоре» Redis хранит **только чёрный список отозванных JWT** (blacklist), а не токены
+для входа: при входе в Redis ничего не пишется. При выходе выполняется
+`HSET amphora:blacklist:<jti> user_id 1 login umid revoked_at … expires_at …` и
+`EXPIRE <секунд до конца срока токена>` (jti — уникальный ид токена из payload).
+Middleware перед каждым методом проверяет `EXISTS amphora:blacklist:<jti>`: если запись
+есть — токен отозван, 401. Посмотреть: `docker exec -it rip-redis redis-cli -a rip`,
+затем `KEYS *`, `HGETALL <ключ>`, `TTL <ключ>`.
 
 ## JWT (JSON Web Token)
 

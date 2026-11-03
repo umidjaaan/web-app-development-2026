@@ -1,23 +1,33 @@
-// Package redis — клиент Redis. В Redis хранится чёрный список (blacklist)
-// JWT: при выходе пользователя его токен записывается сюда и перестаёт
-// приниматься, пока не истечёт его срок действия.
+// Package redis — клиент Redis. В Redis хранится ЧЁРНЫЙ СПИСОК (blacklist)
+// отозванных JWT — и больше ничего.
+//
+// При входе в Redis ничего не пишется: JWT самодостаточен, сервер проверяет
+// его подпись и срок действия без хранилища. Но выданный JWT нельзя
+// «отменить» до истечения срока, поэтому при выходе (logout) идентификатор
+// токена (jti) записывается в чёрный список. Пока запись есть, токен
+// не принимается (401). Запись живёт ровно столько, сколько осталось жить
+// токену (TTL), — потом Redis удаляет её сам.
+//
+// Запись — хеш (HSET) с ключом amphora:blacklist:<jti>:
+//
+//	user_id    — ид пользователя, чей токен отозван
+//	login      — его логин
+//	revoked_at — когда отозван (момент выхода)
+//	expires_at — когда истекает сам токен
 package redis
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	goredis "github.com/redis/go-redis/v9"
 )
 
-// Префиксы ключей: «сервис.назначение.значение», чтобы ключи разных
-// приложений в одном Redis не пересекались.
-const (
-	servicePrefix = "amphora."
-	jwtPrefix     = "jwt."
-)
+// blacklistPrefix — префикс ключей чёрного списка: «сервис:назначение:jti»,
+// чтобы ключи разных приложений в одном Redis не пересекались.
+const blacklistPrefix = "amphora:blacklist:"
 
 // Client — соединение с Redis.
 type Client struct {
@@ -42,27 +52,39 @@ func New(ctx context.Context, addr, password string) (*Client, error) {
 // Close закрывает соединение.
 func (c *Client) Close() error { return c.client.Close() }
 
-func jwtKey(token string) string { return servicePrefix + jwtPrefix + token }
+func blacklistKey(jti string) string { return blacklistPrefix + jti }
 
-// WriteJWTToBlacklist кладёт токен в чёрный список до конца срока его
-// действия (ttl). Значение — логин пользователя: так в redis-cli видно,
-// чей это токен.
-func (c *Client) WriteJWTToBlacklist(ctx context.Context, token, login string, ttl time.Duration) error {
-	if ttl <= 0 {
-		return nil // токен уже истёк — хранить незачем
-	}
-	return c.client.Set(ctx, jwtKey(token), login, ttl).Err()
+// RevokedToken — запись чёрного списка: чей токен и когда отозван.
+type RevokedToken struct {
+	JTI       string
+	UserID    uint
+	Login     string
+	ExpiresAt time.Time
 }
 
-// IsJWTBlacklisted — есть ли токен в чёрном списке.
-func (c *Client) IsJWTBlacklisted(ctx context.Context, token string) (bool, error) {
-	err := c.client.Get(ctx, jwtKey(token)).Err()
-	switch {
-	case err == nil:
-		return true, nil
-	case errors.Is(err, goredis.Nil):
-		return false, nil
-	default:
-		return false, err
+// AddToBlacklist — выход: кладёт jti токена в чёрный список до конца срока
+// действия токена. HSET + EXPIRE выполняются одной транзакцией (MULTI/EXEC).
+func (c *Client) AddToBlacklist(ctx context.Context, t RevokedToken) error {
+	ttl := time.Until(t.ExpiresAt)
+	if ttl <= 0 {
+		return nil // токен уже истёк — в чёрный список не нужен
 	}
+	key := blacklistKey(t.JTI)
+	_, err := c.client.TxPipelined(ctx, func(pipe goredis.Pipeliner) error {
+		pipe.HSet(ctx, key, map[string]any{
+			"user_id":    strconv.FormatUint(uint64(t.UserID), 10),
+			"login":      t.Login,
+			"revoked_at": time.Now().Format(time.RFC3339),
+			"expires_at": t.ExpiresAt.Format(time.RFC3339),
+		})
+		pipe.Expire(ctx, key, ttl)
+		return nil
+	})
+	return err
+}
+
+// IsBlacklisted — отозван ли токен (есть ли его jti в чёрном списке).
+func (c *Client) IsBlacklisted(ctx context.Context, jti string) (bool, error) {
+	n, err := c.client.Exists(ctx, blacklistKey(jti)).Result()
+	return n > 0, err
 }

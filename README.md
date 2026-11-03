@@ -64,10 +64,13 @@ swag init -g cmd/main/main.go -o docs/swagger
    {"status": "success", "data": {"access_token": "eyJhbGciOi…", "token_type": "Bearer",
     "expires_in": 3600, "user": {"id": 1, "login": "umid", "is_moderator": true}}}
    ```
-   В токене (payload): `user_id`, `login`, `is_moderator`, `iat`, `exp`, `iss`.
+   В токене (payload): `jti` (уникальный ид токена), `user_id`, `login`, `is_moderator`,
+   `iat`, `exp`, `iss`. **При входе в Redis ничего не записывается** — JWT проверяется
+   по подписи без хранилища.
 2. **Запросы.** Токен передаётся заголовком `Authorization: Bearer <access_token>`.
-   В Swagger — кнопка **Authorize**, в Postman — вкладка *Authorization → Bearer Token*
-   (в коллекции токен сохраняется автоматически после запроса «Аутентификация»).
+   В Swagger — кнопка **Authorize**. В Postman токен вставляется **вручную** во вкладке
+   **Headers** каждого запроса: в строке `Authorization` заменить `ВСТАВЬТЕ_ТОКЕН` на токен
+   из ответа входа (вкладка Authorization и Cookies не используются).
 3. **Проверка.** Middleware `WithAuthCheck`
    ([internal/app/handler/middleware.go](internal/app/handler/middleware.go))
    проверяет подпись и срок токена, затем ищет его в чёрном списке Redis и кладёт
@@ -76,14 +79,18 @@ swag init -g cmd/main/main.go -o docs/swagger
    * `WithAuthCheck(false)` — **методы чтения** (список, лента): работают и без токена
      (гость, признаки `is_creator` / `is_liked` = 0), а с токеном — для пользователя.
    * `WithAuthCheck(true)` — **методы создателя**: без действующего токена — **401**.
-4. **Выход.** `POST /api/users/logout` кладёт токен в Redis под ключом
-   `amphora.jwt.<токен>` со значением — логином пользователя и временем жизни до конца
-   срока токена. После этого токен не принимается (401). Посмотреть:
+4. **Выход и Redis.** В Redis хранится только **чёрный список отозванных токенов**
+   (blacklist): JWT нельзя «отменить» до конца срока, поэтому при выходе
+   `POST /api/users/logout` идентификатор токена (`jti`) записывается в Redis хешем
+   `amphora:blacklist:<jti>` с полями `user_id`, `login`, `revoked_at`, `expires_at`
+   и временем жизни (TTL) до конца срока токена. Middleware перед каждым методом
+   проверяет `EXISTS amphora:blacklist:<jti>`: если запись есть — токен отозван, ответ 401.
+   Когда срок токена истекает, Redis удаляет запись сам. Посмотреть:
    ```bash
    docker exec -it rip-redis redis-cli -a rip
-   KEYS *            # amphora.jwt.eyJhbGciOi…
-   GET  <ключ>       # umid — чей токен
-   TTL  <ключ>       # сколько секунд ещё хранится
+   KEYS *                         # amphora:blacklist:5ed95acc…  (до выхода — пусто)
+   HGETALL amphora:blacklist:<jti> # чей токен (user_id, login) и когда отозван
+   TTL amphora:blacklist:<jti>     # сколько секунд запись ещё хранится
    ```
 5. **Регистрация.** `POST /api/users/register` — в таблицу `users` пишется хеш bcrypt,
    а не пароль. Новый пользователь всегда не модератор.
@@ -152,7 +159,7 @@ swag init -g cmd/main/main.go -o docs/swagger
 
 ## 4. Таблицы БД
 
-ER-диаграмма — [docs/er.png](docs/er.png), исходник — [docs/er.drawio](docs/er.drawio).
+ER-диаграмма (связи в нотации «воронья лапка») — [docs/er.png](docs/er.png), исходник — [docs/er.drawio](docs/er.drawio).
 
 **users**
 
@@ -175,6 +182,7 @@ ER-диаграмма — [docs/er.png](docs/er.png), исходник — [docs
 | date_end | date | NULL | клиент, PUT publish |
 | description | text | NULL | клиент, PUT publish |
 | status | varchar(16) | NOT NULL: `draft` / `published` / `deleted` | сервер |
+| created_at | timestamp | NOT NULL, default now() | сервер, POST: дата создания — момент вставки строки |
 | formed_at | timestamp | NULL | сервер, PUT publish: момент публикации |
 | creator_id | bigint | NOT NULL, FK → users.id | сервер (singleton) |
 
@@ -219,7 +227,8 @@ docs/                                   ER-диаграмма, диаграмм�
 * **Домены** — интерфейсы `ImportCategoriesDomain` и `UsersDomain` в
   [internal/app/handler/handler.go](internal/app/handler/handler.go).
 
-Диаграмма классов (страницы → домены → модели → таблицы): [docs/classes.png](docs/classes.png),
+Диаграмма классов (страницы → интерфейсы API → домены → модели → таблицы; у классов указаны
+поля и методы): [docs/classes.png](docs/classes.png),
 исходник — [docs/classes.drawio](docs/classes.drawio).
 
 ---
@@ -228,14 +237,16 @@ docs/                                   ER-диаграмма, диаграмм�
 
 1. **Скриншоты 1–3** — Swagger (<http://localhost:8080/swagger/index.html>) в режиме
    инкогнито: `POST /api/users/login` → скопировать `access_token`; `GET /api/import_categories`
-   (работает без авторизации). Токен из ответа — в Postman: *Authorization → Bearer Token*
-   (коллекция сохраняет его сама после запроса «9. Аутентификация»).
+   (работает без авторизации). Токен из ответа Swagger вставить **вручную** в Postman:
+   вкладка Headers → `Authorization: Bearer <токен>` (белая галочка).
 2. **Скриншоты 4–5** — Postman: `GET` списка услуг с токеном и без — работает в обоих случаях.
 3. **Скриншоты 6–8** — `PUT …/publish`: папка «ЛР4: авторизация» → «Публикация гостем → 401»;
-   затем с токеном — 200, поля обновлены (`SELECT` в Adminer). Содержимое Redis после выхода:
-   `docker exec -it rip-redis redis-cli -a rip` → `KEYS *`, `GET <ключ>` (логин пользователя).
-4. **Скриншот 9** — диаграмма последовательности [docs/sequence.drawio](docs/sequence.drawio)
-   ([png](docs/sequence.png)): сообщения — методы доменов из диаграммы классов с аргументами.
+   затем с токеном — 200, поля обновлены (`SELECT` в Adminer). Redis: до выхода `KEYS *`
+   пусто; после «10. Деавторизация» — `KEYS *`, `HGETALL <ключ>` (пользователь), `TTL <ключ>`;
+   запрос со старым токеном → 401.
+4. **Скриншот 10** — диаграмма последовательности [docs/sequence.drawio](docs/sequence.drawio)
+   ([png](docs/sequence.png)): линии жизни — фронтенд, домен users, домен import_categories;
+   сообщения — методы доменов из диаграммы классов с аргументами.
    Все три диаграммы (ER, классы, последовательность) — в одном файле
    [docs/amphora_diagrams.drawio](docs/amphora_diagrams.drawio), каждая на своём листе.
 

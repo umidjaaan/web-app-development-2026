@@ -2,7 +2,7 @@
   "info": {
     "name": "Амфора — ЛР4 (JWT, Redis)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Веб-сервис «Амфора». Авторизация по JWT: сначала выполните «9. Аутентификация» — токен сохранится в переменную token и подставится во все запросы (Authorization: Bearer {{token}}). Список и лента работают и без токена."
+    "description": "Веб-сервис «Амфора», ЛР4. Токен передаётся ВРУЧНУЮ в заголовке каждого запроса: выполните вход в Swagger (POST /api/users/login), скопируйте access_token и во вкладке Headers запроса замените ВСТАВЬТЕ_ТОКЕН на токен (Authorization: Bearer <токен>). Вкладка Authorization и Cookies не используются."
   },
   "variable": [
     {
@@ -16,10 +16,6 @@
     {
       "key": "feed_id",
       "value": "1"
-    },
-    {
-      "key": "token",
-      "value": ""
     }
   ],
   "item": [
@@ -30,7 +26,14 @@
           "name": "1. Список услуг (фильтр по дате начала)",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories?date_start=0600-01-01",
               "host": [
@@ -47,14 +50,24 @@
                 }
               ]
             },
-            "description": "Только опубликованные. date_start — тип появился не позднее этой даты (год до н. э.). is_creator = 1 — услугу создал текущий пользователь."
+            "description": "Только опубликованные. date_start — тип появился не позднее этой даты (год до н. э.). is_creator = 1 — услугу создал текущий пользователь.",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
           "name": "2. Добавить услугу (фото и видео)",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories",
               "host": [
@@ -87,6 +100,9 @@
                   "description": "MP4 / WEBM до 50 МБ"
                 }
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
           },
           "event": [
@@ -107,7 +123,14 @@
           "name": "3. Получить черновик",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories/draft",
               "host": [
@@ -119,7 +142,10 @@
                 "draft"
               ]
             },
-            "description": "Черновик текущего пользователя, ид не указывается."
+            "description": "Черновик текущего пользователя, ид не указывается.",
+            "auth": {
+              "type": "noauth"
+            }
           },
           "event": [
             {
@@ -140,6 +166,12 @@
           "request": {
             "method": "PUT",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -166,6 +198,9 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -173,7 +208,14 @@
           "name": "5. Лента",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories/feed",
               "host": [
@@ -197,7 +239,10 @@
                 }
               ]
             },
-            "description": "Без параметров — первая услуга ленты. Включите id и next — следующая услуга после указанной. is_liked = 1 — текущий пользователь лайкнул услугу."
+            "description": "Без параметров — первая услуга ленты. Включите id и next — следующая услуга после указанной. is_liked = 1 — текущий пользователь лайкнул услугу.",
+            "auth": {
+              "type": "noauth"
+            }
           },
           "event": [
             {
@@ -218,6 +263,12 @@
           "request": {
             "method": "POST",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -244,6 +295,9 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -251,7 +305,14 @@
           "name": "7. Удалить услугу",
           "request": {
             "method": "DELETE",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories/{{draft_id}}",
               "host": [
@@ -263,7 +324,10 @@
                 "{{draft_id}}"
               ]
             },
-            "description": "Мягкое удаление: статус deleted. Только услуги текущего пользователя."
+            "description": "Мягкое удаление: статус deleted. Только услуги текущего пользователя.",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -323,7 +387,7 @@
                 "login"
               ]
             },
-            "description": "Выдаёт JWT. Скрипт Tests сохраняет access_token в переменную коллекции token.",
+            "description": "Выдаёт JWT. Скопируйте access_token из ответа и вставьте вручную в заголовок Authorization нужных запросов.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"login\": \"umid\",\n  \"password\": \"rip2026\"\n}",
@@ -336,27 +400,20 @@
             "auth": {
               "type": "noauth"
             }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "  pm.collectionVariables.set('token', pm.response.json().data.access_token);",
-                  "  console.log('JWT сохранён в переменную token');",
-                  "}"
-                ]
-              }
-            }
-          ]
+          }
         },
         {
           "name": "10. Деавторизация (токен в blacklist Redis)",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/users/logout",
               "host": [
@@ -368,7 +425,10 @@
                 "logout"
               ]
             },
-            "description": "Кладёт текущий JWT в чёрный список Redis. После этого запросы с ним дают 401 — выполните «9. Аутентификация» снова."
+            "description": "Отзывает токен: его jti записывается в чёрный список Redis (amphora:blacklist:<jti>). После этого запросы с этим токеном дают 401.",
+            "auth": {
+              "type": "noauth"
+            }
           }
         }
       ]
@@ -547,7 +607,13 @@
           "name": "Черновик с поддельным токеном → 401",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer abc.def.ghi",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories/draft",
               "host": [
@@ -561,14 +627,7 @@
             },
             "description": "",
             "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "abc.def.ghi",
-                  "type": "string"
-                }
-              ]
+              "type": "noauth"
             }
           }
         },
@@ -639,7 +698,14 @@
           "name": "Список: дата не по формату → 400",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories?date_start=abc",
               "host": [
@@ -656,14 +722,24 @@
                 }
               ]
             },
-            "description": ""
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
           "name": "Добавление: без title → 400",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories",
               "host": [
@@ -684,6 +760,9 @@
                   "type": "text"
                 }
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -691,7 +770,14 @@
           "name": "Добавление: системное поле status → 400",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories",
               "host": [
@@ -717,6 +803,9 @@
                   "type": "text"
                 }
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -724,7 +813,14 @@
           "name": "Добавление: image текстом вместо файла → 400",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories",
               "host": [
@@ -750,6 +846,9 @@
                   "type": "text"
                 }
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -757,7 +856,14 @@
           "name": "Добавление: второй черновик → 409",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories",
               "host": [
@@ -778,6 +884,9 @@
                   "type": "text"
                 }
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -786,6 +895,12 @@
           "request": {
             "method": "PUT",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -812,6 +927,9 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -820,6 +938,12 @@
           "request": {
             "method": "PUT",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -846,6 +970,9 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -854,6 +981,12 @@
           "request": {
             "method": "PUT",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -880,6 +1013,9 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -888,6 +1024,12 @@
           "request": {
             "method": "PUT",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -914,6 +1056,9 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -922,6 +1067,12 @@
           "request": {
             "method": "PUT",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -948,6 +1099,9 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -955,7 +1109,14 @@
           "name": "Удаление: ид -1 → 400",
           "request": {
             "method": "DELETE",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories/-1",
               "host": [
@@ -967,14 +1128,24 @@
                 "-1"
               ]
             },
-            "description": ""
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
           "name": "Удаление: чужой услуги → 404",
           "request": {
             "method": "DELETE",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories/2",
               "host": [
@@ -986,7 +1157,10 @@
                 "2"
               ]
             },
-            "description": ""
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -994,6 +1168,12 @@
           "request": {
             "method": "POST",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -1020,6 +1200,9 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -1028,6 +1211,12 @@
           "request": {
             "method": "POST",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -1054,6 +1243,9 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -1061,7 +1253,14 @@
           "name": "Лента: нет услуги с таким ид → 404",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer ВСТАВЬТЕ_ТОКЕН",
+                "type": "text",
+                "description": "токен из ответа /api/users/login (Swagger), вставить вручную"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/import_categories/feed?id=999",
               "host": [
@@ -1079,7 +1278,10 @@
                 }
               ]
             },
-            "description": ""
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
@@ -1112,6 +1314,9 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -1145,20 +1350,13 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "noauth"
             }
           }
         }
       ]
     }
-  ],
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{token}}",
-        "type": "string"
-      }
-    ]
-  }
+  ]
 }

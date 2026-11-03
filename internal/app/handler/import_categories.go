@@ -16,7 +16,7 @@ import (
 )
 
 // systemFields — поля, которые вычисляются на бэкенде: с клиента их не принимаем.
-var systemFields = []string{"id", "status", "creator_id", "formed_at", "is_moderator"}
+var systemFields = []string{"id", "status", "creator_id", "created_at", "formed_at", "is_moderator"}
 
 // maxCreateBody — предел тела запроса на создание: видео 50 МБ + фото 10 МБ + поля.
 const maxCreateBody = 61 << 20

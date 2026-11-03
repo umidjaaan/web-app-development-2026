@@ -9,6 +9,7 @@ import (
 
 	"rip/lab1/internal/app/auth"
 	"rip/lab1/internal/app/ds"
+	"rip/lab1/internal/app/redis"
 	"rip/lab1/internal/app/repository"
 	"rip/lab1/internal/app/serializer"
 )
@@ -100,7 +101,7 @@ func (h *Handler) Login(c *gin.Context) {
 // Logout godoc
 //
 //	@Summary		Деавторизация
-//	@Description	Кладёт текущий JWT в чёрный список Redis до конца срока его действия: после этого токен не принимается.
+//	@Description	Отзывает текущий JWT: его идентификатор (jti) записывается в чёрный список Redis до конца срока действия токена. После этого токен не принимается (401).
 //	@Tags			users
 //	@Produce		json
 //	@Security		BearerAuth
@@ -109,12 +110,17 @@ func (h *Handler) Login(c *gin.Context) {
 //	@Router			/api/users/logout [post]
 func (h *Handler) Logout(c *gin.Context) {
 	claims, _ := auth.Current(c) // middleware уже проверил токен
-	token := auth.CurrentToken(c)
 
-	if err := h.Redis.WriteJWTToBlacklist(c.Request.Context(), token, claims.Login, claims.ExpiresIn()); err != nil {
+	err := h.Redis.AddToBlacklist(c.Request.Context(), redis.RevokedToken{
+		JTI:       claims.ID,
+		UserID:    claims.UserID,
+		Login:     claims.Login,
+		ExpiresAt: claims.ExpiresAt.Time,
+	})
+	if err != nil {
 		h.fail(c, http.StatusInternalServerError, err)
 		return
 	}
-	h.Logger.Infof("выход пользователя %s: токен в blacklist", claims.Login)
+	h.Logger.Infof("выход пользователя %s: токен %s в чёрном списке", claims.Login, claims.ID)
 	h.success(c, http.StatusOK, nil, "выход выполнен, токен отозван")
 }

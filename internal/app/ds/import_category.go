@@ -66,7 +66,8 @@ type ImportCategory struct {
 
 	// Системные поля: задаются только на бэкенде.
 	Status    Status     `gorm:"size:16;not null;default:draft;index" json:"status"`
-	FormedAt  *time.Time `gorm:"type:timestamp" json:"formed_at"` // момент публикации, NULL у черновика
+	CreatedAt time.Time  `gorm:"type:timestamp;not null;default:now()" json:"created_at"` // дата создания: момент вставки строки (шаг «Далее»)
+	FormedAt  *time.Time `gorm:"type:timestamp" json:"formed_at"`                         // момент публикации, NULL у черновика
 	CreatorID uint       `gorm:"not null;index" json:"creator_id"`
 	Creator   *User      `gorm:"foreignKey:CreatorID" json:"-"`
 
@@ -95,6 +96,9 @@ func (c ImportCategory) PeriodLabel() *string {
 // DateStartString и DateEndString — даты в формате API (nil, если не заполнены).
 func (c ImportCategory) DateStartString() *string { return dateString(c.DateStart) }
 func (c ImportCategory) DateEndString() *string   { return dateString(c.DateEnd) }
+
+// CreatedAtString — дата создания (вставки строки) в формате RFC 3339.
+func (c ImportCategory) CreatedAtString() string { return c.CreatedAt.Format(time.RFC3339) }
 
 // FormedAtString — момент публикации в формате RFC 3339 (nil у черновика).
 func (c ImportCategory) FormedAtString() *string {

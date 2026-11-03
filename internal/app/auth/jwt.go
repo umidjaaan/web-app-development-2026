@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -14,8 +16,9 @@ import (
 // issuer — кто выпустил токен (поле iss).
 const issuer = "amphora"
 
-// Claims — полезные данные JWT: стандартные поля (срок действия, время
-// выпуска, издатель) и наши — пользователь и его роль.
+// Claims — полезные данные JWT: стандартные поля (идентификатор токена jti,
+// срок действия, время выпуска, издатель) и наши — пользователь и его роль.
+// По jti токен попадает в чёрный список Redis при выходе.
 type Claims struct {
 	jwt.RegisteredClaims
 	UserID      uint   `json:"user_id"`
@@ -28,8 +31,13 @@ type Claims struct {
 func NewToken(user ds.User, secret []byte, ttl time.Duration) (string, time.Time, error) {
 	now := time.Now()
 	expiresAt := now.Add(ttl)
+	jti, err := newTokenID()
+	if err != nil {
+		return "", time.Time{}, err
+	}
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        jti, // уникальный идентификатор токена (jti)
 			Issuer:    issuer,
 			Subject:   strconv.FormatUint(uint64(user.ID), 10),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -58,10 +66,19 @@ func ParseToken(raw string, secret []byte) (*Claims, error) {
 		}
 		return nil, errors.New("токен недействителен")
 	}
-	if claims.UserID == 0 {
-		return nil, errors.New("в токене нет пользователя")
+	if claims.UserID == 0 || claims.ID == "" {
+		return nil, errors.New("в токене нет пользователя или идентификатора")
 	}
 	return claims, nil
+}
+
+// newTokenID — случайный идентификатор токена (jti), 16 байт в hex.
+func newTokenID() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("jti: %w", err)
+	}
+	return hex.EncodeToString(b), nil
 }
 
 // ExpiresIn — сколько ещё действует токен (0, если уже истёк).

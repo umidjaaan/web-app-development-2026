@@ -3,7 +3,8 @@
 ![ER-диаграмма](er.png)
 
 Исходник для редактирования — [er.drawio](er.drawio) (открывается на app.diagrams.net:
-«Файл → Открыть с → Устройство»). Картинка пересобирается скриптом `tools/gen_er.py`.
+«Файл → Открыть с → Устройство»). Связи показаны в нотации «воронья лапка». Все диаграммы (ER, классы, последовательность) —
+в файле [amphora_diagrams.drawio](amphora_diagrams.drawio), каждая на своём листе.
 
 ## Таблицы
 
@@ -28,6 +29,7 @@
 | date_end | date | NULL | публикация (PUT) |
 | description | text | NULL | публикация (PUT) |
 | status | varchar(16) | NOT NULL, DEFAULT 'draft' | draft → published → deleted |
+| created_at | timestamp | NOT NULL | создание (POST): дата создания — момент вставки строки, ставит сервер |
 | formed_at | timestamp | NULL | публикация (PUT): момент публикации, ставит сервер |
 | creator_id | bigint | NOT NULL, FK → users.id | на сервере (singleton) |
 

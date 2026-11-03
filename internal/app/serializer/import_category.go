@@ -53,7 +53,8 @@ type DraftSerializer struct {
 	DateStart   *string        `json:"date_start"`
 	DateEnd     *string        `json:"date_end"`
 	Description *string        `json:"description"`
-	FormedAt    *string        `json:"formed_at"` // NULL у черновика
+	CreatedAt   string         `json:"created_at"` // дата создания (вставки)
+	FormedAt    *string        `json:"formed_at"`  // NULL у черновика
 	Status      ds.Status      `json:"status"`
 	Creator     UserSerializer `json:"creator"`
 }
@@ -128,6 +129,7 @@ func ToDraft(c ds.ImportCategory, urls URLBuilder) DraftSerializer {
 		DateStart:   c.DateStartString(),
 		DateEnd:     c.DateEndString(),
 		Description: c.Description,
+		CreatedAt:   c.CreatedAtString(),
 		FormedAt:    c.FormedAtString(),
 		Status:      c.Status,
 		Creator:     toCreator(c),

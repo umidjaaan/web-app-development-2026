@@ -526,7 +526,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Кладёт текущий JWT в чёрный список Redis до конца срока его действия: после этого токен не принимается.",
+                "description": "Отзывает текущий JWT: его идентификатор (jti) записывается в чёрный список Redis до конца срока действия токена. После этого токен не принимается (401).",
                 "produces": [
                     "application/json"
                 ],
@@ -626,6 +626,10 @@ const docTemplate = `{
         "serializer.DraftSerializer": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "description": "дата создания (вставки)",
+                    "type": "string"
+                },
                 "creator": {
                     "$ref": "#/definitions/serializer.UserSerializer"
                 },

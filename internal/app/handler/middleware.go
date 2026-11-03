@@ -20,7 +20,7 @@ const bearerPrefix = "Bearer "
 //	                   дополнительно заполняются признаки is_creator / is_liked.
 //
 // Токен проверяется по подписи и сроку действия, а затем по чёрному списку
-// в Redis (туда он попадает после выхода).
+// в Redis: если его jti там есть, пользователь уже вышел — токен отозван.
 func (h *Handler) WithAuthCheck(required bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := tokenFromHeader(c)
@@ -36,7 +36,7 @@ func (h *Handler) WithAuthCheck(required bool) gin.HandlerFunc {
 		claims, err := auth.ParseToken(token, h.JWTSecret)
 		if err == nil {
 			var blacklisted bool
-			blacklisted, err = h.Redis.IsJWTBlacklisted(c.Request.Context(), token)
+			blacklisted, err = h.Redis.IsBlacklisted(c.Request.Context(), claims.ID)
 			if err != nil {
 				h.abort(c, http.StatusInternalServerError, err)
 				return

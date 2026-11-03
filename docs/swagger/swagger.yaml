@@ -12,6 +12,9 @@ definitions:
     - StatusDeleted
   serializer.DraftSerializer:
     properties:
+      created_at:
+        description: дата создания (вставки)
+        type: string
       creator:
         $ref: '#/definitions/serializer.UserSerializer'
       date_end:
@@ -492,8 +495,9 @@ paths:
       - users
   /api/users/logout:
     post:
-      description: 'Кладёт текущий JWT в чёрный список Redis до конца срока его действия:
-        после этого токен не принимается.'
+      description: 'Отзывает текущий JWT: его идентификатор (jti) записывается в чёрный
+        список Redis до конца срока действия токена. После этого токен не принимается
+        (401).'
       produces:
       - application/json
       responses:
