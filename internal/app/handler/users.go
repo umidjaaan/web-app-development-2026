@@ -21,6 +21,7 @@ var errBadCredentials = errors.New("неверный логин или паро�
 // Register godoc
 //
 //	@Summary		Регистрация пользователя
+//	@ID				registerUser
 //	@Description	Создаёт пользователя. Пароль хранится в виде хеша bcrypt. is_moderator с клиента не принимается.
 //	@Tags			users
 //	@Accept			json
@@ -54,6 +55,7 @@ func (h *Handler) Register(c *gin.Context) {
 // Login godoc
 //
 //	@Summary		Аутентификация
+//	@ID				loginUser
 //	@Description	Проверяет логин и пароль и выдаёт JWT. Токен передаётся в остальных запросах заголовком Authorization: Bearer <токен>.
 //	@Tags			users
 //	@Accept			json
@@ -101,6 +103,7 @@ func (h *Handler) Login(c *gin.Context) {
 // Logout godoc
 //
 //	@Summary		Деавторизация
+//	@ID				logoutUser
 //	@Description	Отзывает текущий JWT: его идентификатор (jti) записывается в чёрный список Redis до конца срока действия токена. После этого токен не принимается (401).
 //	@Tags			users
 //	@Produce		json

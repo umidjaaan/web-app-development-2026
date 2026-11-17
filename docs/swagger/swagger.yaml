@@ -187,6 +187,7 @@ paths:
     get:
       description: Опубликованные категории импорта с фильтром по дате начала. Доступен
         гостю; с токеном is_creator = 1 у услуг текущего пользователя.
+      operationId: getImportCategories
       parameters:
       - description: Дата начала, ГГГГ-ММ-ДД (год до н. э.)
         example: "0500-01-01"
@@ -219,6 +220,7 @@ paths:
       - multipart/form-data
       description: 'Создаёт черновик: название, фото и видео (файлами). Создатель
         — пользователь из токена. Нужна авторизация.'
+      operationId: createImportCategory
       parameters:
       - description: Название
         in: formData
@@ -265,6 +267,7 @@ paths:
   /api/import_categories/{id}:
     delete:
       description: Мягкое удаление (status = deleted). Только свои услуги. Нужна авторизация.
+      operationId: deleteImportCategory
       parameters:
       - description: Ид услуги
         in: path
@@ -301,6 +304,7 @@ paths:
       - application/json
       description: like = 1 ставит лайк от текущего пользователя, like = 0 отменяет.
         Нужна авторизация.
+      operationId: likeImportCategory
       parameters:
       - description: Ид услуги
         in: path
@@ -352,6 +356,7 @@ paths:
       - application/json
       description: 'Черновик → опубликована: два поля по теме и описание. Только свой
         черновик. Нужна авторизация (гостю 401).'
+      operationId: publishImportCategory
       parameters:
       - description: Ид черновика
         in: path
@@ -396,6 +401,7 @@ paths:
   /api/import_categories/draft:
     get:
       description: Черновик текущего пользователя (не больше одного). Нужна авторизация.
+      operationId: getDraft
       produces:
       - application/json
       responses:
@@ -425,6 +431,7 @@ paths:
     get:
       description: Одна опубликованная услуга ленты. Без id — первая, с id — эта услуга,
         с id и next=true — следующая. Доступна гостю; с токеном заполняется is_liked.
+      operationId: getFeed
       parameters:
       - description: Ид услуги
         in: query
@@ -463,6 +470,7 @@ paths:
       - application/json
       description: 'Проверяет логин и пароль и выдаёт JWT. Токен передаётся в остальных
         запросах заголовком Authorization: Bearer <токен>.'
+      operationId: loginUser
       parameters:
       - description: Логин и пароль
         in: body
@@ -498,6 +506,7 @@ paths:
       description: 'Отзывает текущий JWT: его идентификатор (jti) записывается в чёрный
         список Redis до конца срока действия токена. После этого токен не принимается
         (401).'
+      operationId: logoutUser
       produces:
       - application/json
       responses:
@@ -520,6 +529,7 @@ paths:
       - application/json
       description: Создаёт пользователя. Пароль хранится в виде хеша bcrypt. is_moderator
         с клиента не принимается.
+      operationId: registerUser
       parameters:
       - description: Логин и пароль
         in: body

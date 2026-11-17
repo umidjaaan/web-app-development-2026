@@ -227,8 +227,8 @@ docs/                                   ER-диаграмма, диаграмм�
 * **Домены** — интерфейсы `ImportCategoriesDomain` и `UsersDomain` в
   [internal/app/handler/handler.go](internal/app/handler/handler.go).
 
-Диаграмма классов (страницы → интерфейсы API → домены → модели → таблицы; у классов указаны
-поля и методы): [docs/classes.png](docs/classes.png),
+Диаграмма классов (страницы React-приложения → интерфейсы API → домены веб-сервиса с их
+HTTP-методами): [docs/classes.png](docs/classes.png),
 исходник — [docs/classes.drawio](docs/classes.drawio).
 
 ---

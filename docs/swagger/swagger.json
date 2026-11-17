@@ -24,6 +24,7 @@
                     "import_categories"
                 ],
                 "summary": "Список услуг",
+                "operationId": "getImportCategories",
                 "parameters": [
                     {
                         "type": "string",
@@ -80,6 +81,7 @@
                     "import_categories"
                 ],
                 "summary": "Добавление услуги (шаг «Далее»)",
+                "operationId": "createImportCategory",
                 "parameters": [
                     {
                         "type": "string",
@@ -156,6 +158,7 @@
                     "import_categories"
                 ],
                 "summary": "Черновик",
+                "operationId": "getDraft",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -200,6 +203,7 @@
                     "import_categories"
                 ],
                 "summary": "Лента",
+                "operationId": "getFeed",
                 "parameters": [
                     {
                         "type": "integer",
@@ -263,6 +267,7 @@
                     "import_categories"
                 ],
                 "summary": "Удаление услуги",
+                "operationId": "deleteImportCategory",
                 "parameters": [
                     {
                         "type": "integer",
@@ -318,6 +323,7 @@
                     "import_categories"
                 ],
                 "summary": "Лайк",
+                "operationId": "likeImportCategory",
                 "parameters": [
                     {
                         "type": "integer",
@@ -400,6 +406,7 @@
                     "import_categories"
                 ],
                 "summary": "Публикация услуги",
+                "operationId": "publishImportCategory",
                 "parameters": [
                     {
                         "type": "integer",
@@ -471,6 +478,7 @@
                     "users"
                 ],
                 "summary": "Аутентификация",
+                "operationId": "loginUser",
                 "parameters": [
                     {
                         "description": "Логин и пароль",
@@ -531,6 +539,7 @@
                     "users"
                 ],
                 "summary": "Деавторизация",
+                "operationId": "logoutUser",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -560,6 +569,7 @@
                     "users"
                 ],
                 "summary": "Регистрация пользователя",
+                "operationId": "registerUser",
                 "parameters": [
                     {
                         "description": "Логин и пароль",

@@ -27,6 +27,7 @@ const docTemplate = `{
                     "import_categories"
                 ],
                 "summary": "Список услуг",
+                "operationId": "getImportCategories",
                 "parameters": [
                     {
                         "type": "string",
@@ -83,6 +84,7 @@ const docTemplate = `{
                     "import_categories"
                 ],
                 "summary": "Добавление услуги (шаг «Далее»)",
+                "operationId": "createImportCategory",
                 "parameters": [
                     {
                         "type": "string",
@@ -159,6 +161,7 @@ const docTemplate = `{
                     "import_categories"
                 ],
                 "summary": "Черновик",
+                "operationId": "getDraft",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -203,6 +206,7 @@ const docTemplate = `{
                     "import_categories"
                 ],
                 "summary": "Лента",
+                "operationId": "getFeed",
                 "parameters": [
                     {
                         "type": "integer",
@@ -266,6 +270,7 @@ const docTemplate = `{
                     "import_categories"
                 ],
                 "summary": "Удаление услуги",
+                "operationId": "deleteImportCategory",
                 "parameters": [
                     {
                         "type": "integer",
@@ -321,6 +326,7 @@ const docTemplate = `{
                     "import_categories"
                 ],
                 "summary": "Лайк",
+                "operationId": "likeImportCategory",
                 "parameters": [
                     {
                         "type": "integer",
@@ -403,6 +409,7 @@ const docTemplate = `{
                     "import_categories"
                 ],
                 "summary": "Публикация услуги",
+                "operationId": "publishImportCategory",
                 "parameters": [
                     {
                         "type": "integer",
@@ -474,6 +481,7 @@ const docTemplate = `{
                     "users"
                 ],
                 "summary": "Аутентификация",
+                "operationId": "loginUser",
                 "parameters": [
                     {
                         "description": "Логин и пароль",
@@ -534,6 +542,7 @@ const docTemplate = `{
                     "users"
                 ],
                 "summary": "Деавторизация",
+                "operationId": "logoutUser",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -563,6 +572,7 @@ const docTemplate = `{
                     "users"
                 ],
                 "summary": "Регистрация пользователя",
+                "operationId": "registerUser",
                 "parameters": [
                     {
                         "description": "Логин и пароль",

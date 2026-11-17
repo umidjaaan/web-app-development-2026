@@ -26,6 +26,7 @@ const maxCreateBody = 61 << 20
 // is_creator = 1, если создатель услуги — текущий пользователь.
 //
 //	@Summary		Список услуг
+//	@ID				getImportCategories
 //	@Description	Опубликованные категории импорта с фильтром по дате начала. Доступен гостю; с токеном is_creator = 1 у услуг текущего пользователя.
 //	@Tags			import_categories
 //	@Produce		json
@@ -67,6 +68,7 @@ func (h *Handler) GetImportCategories(c *gin.Context) {
 // is_liked = 1, если текущий пользователь лайкнул услугу.
 //
 //	@Summary		Лента
+//	@ID				getFeed
 //	@Description	Одна опубликованная услуга ленты. Без id — первая, с id — эта услуга, с id и next=true — следующая. Доступна гостю; с токеном заполняется is_liked.
 //	@Tags			import_categories
 //	@Produce		json
@@ -123,6 +125,7 @@ func (h *Handler) GetFeed(c *gin.Context) {
 // Черновик текущего пользователя; ид не указывается, черновик один.
 //
 //	@Summary		Черновик
+//	@ID				getDraft
 //	@Description	Черновик текущего пользователя (не больше одного). Нужна авторизация.
 //	@Tags			import_categories
 //	@Produce		json
@@ -150,6 +153,7 @@ func (h *Handler) GetDraft(c *gin.Context) {
 // на латинице, в поля image и video таблицы пишутся эти имена.
 //
 //	@Summary		Добавление услуги (шаг «Далее»)
+//	@ID				createImportCategory
 //	@Description	Создаёт черновик: название, фото и видео (файлами). Создатель — пользователь из токена. Нужна авторизация.
 //	@Tags			import_categories
 //	@Accept			multipart/form-data
@@ -246,6 +250,7 @@ func (h *Handler) upload(c *gin.Context, field string, kind repository.FileKind,
 // Черновик → опубликована. Только свой черновик; вернуть в черновик нельзя.
 //
 //	@Summary		Публикация услуги
+//	@ID				publishImportCategory
 //	@Description	Черновик → опубликована: два поля по теме и описание. Только свой черновик. Нужна авторизация (гостю 401).
 //	@Tags			import_categories
 //	@Accept			json
@@ -303,6 +308,7 @@ func (h *Handler) PublishImportCategory(c *gin.Context) {
 // Мягкое удаление (status = deleted). Только услуги текущего пользователя.
 //
 //	@Summary		Удаление услуги
+//	@ID				deleteImportCategory
 //	@Description	Мягкое удаление (status = deleted). Только свои услуги. Нужна авторизация.
 //	@Tags			import_categories
 //	@Produce		json
@@ -331,6 +337,7 @@ func (h *Handler) DeleteImportCategory(c *gin.Context) {
 // Тело: {"like": 1} — поставить лайк, {"like": 0} — отменить.
 //
 //	@Summary		Лайк
+//	@ID				likeImportCategory
 //	@Description	like = 1 ставит лайк от текущего пользователя, like = 0 отменяет. Нужна авторизация.
 //	@Tags			import_categories
 //	@Accept			json
